@@ -57,6 +57,7 @@ INSTALLED_APPS = [
 
 
     #### Third Party Apps #####
+    'rest_framework',
     'crispy_forms',
     'crispy_bootstrap5',
 ]
