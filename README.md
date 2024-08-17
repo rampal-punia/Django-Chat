@@ -1,6 +1,8 @@
 # Django-Chat Webapp
 
-A real-time chat application built with Django, featuring seamless communication with an AI language model.
+## About
+
+Django-Chat is an innovative, AI-powered chat application that combines the robustness of Django with cutting-edge language models. This project showcases the seamless integration of real-time communication and artificial intelligence, providing users with an intelligent conversational experience. Leveraging WebSockets for instant messaging and Hugging Face's state-of-the-art language models, Django-Chat offers responsive, context-aware interactions. The application features user authentication, conversation management, and automatic title generation, all wrapped in a clean, intuitive interface. With its RESTful API and detailed documentation, Django-Chat is not just a functional chat platform but also a valuable learning resource for developers interested in combining Django, WebSockets, and AI technologies. Whether you're looking to deploy a smart chatbot or explore advanced web development techniques, Django-Chat provides a solid foundation for your next-level web application.
 
 ## Table of Contents
 - [Features](#features)
@@ -26,7 +28,7 @@ A real-time chat application built with Django, featuring seamless communication
 
 ## Technologies Used
 
-- Django 4.x: Web framework for backend development
+- Django 5.x: Web framework for backend development
 - Channels: For WebSocket support and asynchronous capabilities
 - Django Rest Framework: For building RESTful APIs
 - Langchain: For integrating with various language models
@@ -136,10 +138,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## Hit Start
-
-Like this project! Consider hitting the star ⭐ button.
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+## Hit Start
+
+Like this project! Consider hitting the star ⭐ button.
