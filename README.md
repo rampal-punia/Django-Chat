@@ -46,8 +46,8 @@ The main components of the chat application include:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/django-chat-webapp.git
-   cd django-chat-webapp
+   git clone https://github.com/yourusername/Django-Chat.git
+   cd Django-Chat
    ```
 
 2. Create a virtual environment and activate it:
@@ -106,6 +106,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+## Hit Start
+
+Like this project! Consider hitting the star ⭐ button.
 
 ## License
 
