@@ -17,12 +17,18 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from apps.chat.api import ConversationViewSet, MessageViewSet
 
+router = DefaultRouter()
+router.register(r'conversations', ConversationViewSet, basename='conversation')
+router.register(r'messages', MessageViewSet, basename='message')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('users/', include('users.urls', namespace='users')),
     path('', include('chat.urls', namespace='chat')),
+    path('users/', include('users.urls', namespace='users')),
+    path('api/', include(router.urls)),
 ]
 
 if settings.DEBUG:

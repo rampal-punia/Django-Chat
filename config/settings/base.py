@@ -58,6 +58,7 @@ INSTALLED_APPS = [
 
     #### Third Party Apps #####
     'rest_framework',
+    'corsheaders',
     'crispy_forms',
     'crispy_bootstrap5',
 ]
@@ -70,6 +71,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -172,5 +175,8 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# For development only. Configure more strictly for production.
+CORS_ALLOW_ALL_ORIGINS = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
