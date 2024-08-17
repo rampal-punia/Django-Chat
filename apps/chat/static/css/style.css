@@ -42,15 +42,31 @@ html {
     padding: 5px;
 }
 
-.fixed-bottom-input {
-    position: fixed;
-    bottom: 0;
-    width: 75%;
-    height: auto;
-    margin-left: 10px;
-    padding: 0px;
-    background-color: #fff;
-    border: 1px solid black;
+@media (max-width: 1080px) {
+    .fixed-bottom-input {
+        position: fixed;
+        bottom: 0;
+        width: 62%;
+        height: auto;
+        margin-left: 32px;
+        padding: 8px;
+        background-color: #fff;
+        border: 1px solid black;
+    }
+}
+
+/* Shrink bottom question area styles */
+@media (min-width: 1080px) {
+    .fixed-bottom-input {
+        position: fixed;
+        bottom: 0;
+        width: 72%;
+        height: auto;
+        margin-left: 32px;
+        padding: 8px;
+        background-color: #fff;
+        border: 1px solid black;
+    }
 }
 
 /* Markdown specific css */

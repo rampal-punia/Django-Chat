@@ -33,7 +33,7 @@ body {
 }
 
 .sidebar-heading {
-    font-size: .75rem;
+    font-size: .70rem;
     text-transform: uppercase;
 }
 
@@ -59,7 +59,7 @@ body {
 /* Shrink sidebar styles */
 @media (min-width: 768px) {
     .sidebar-shrink {
-        margin-left: -230px;
+        margin-left: -250px;
     }
 
     .main-content-shrink {
@@ -70,7 +70,7 @@ body {
 /* Responsive styles */
 @media (max-width: 767.98px) {
     .sidebar {
-        margin-left: -230px;
+        margin-left: -250px;
     }
 
     .sidebar.active {
