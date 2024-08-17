@@ -1,7 +1,36 @@
-<ul class="list-group">
-  <li class="list-group-item">Cras justo odio</li>
-  <li class="list-group-item">Dapibus ac facilisis in</li>
-  <li class="list-group-item">Morbi leo risus</li>
-  <li class="list-group-item">Porta ac consectetur ac</li>
-  <li class="list-group-item"></li>
-</ul>
+<nav id="sidebarMenu" class="col-md-2 col-lg-2 d-md-block bg-dark sidebar collapse text-white">
+    <div class="sidebar-sticky pt-3">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="{% url "chat:home_url" %}">
+                    <span data-feather="home"></span>
+                    Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url "chat:new_conversation_url" %}">
+                    <span data-feather="speaker"></span>
+                    New DjChat
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url "chat:conversation_list_url" %}">
+                    <span data-feather="file"></span>
+                    My Conversations
+                </a>
+            </li>
+            {% comment %} <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <span data-feather="bar-chart-2"></span>
+                    Analytics
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <span data-feather="layers"></span>
+                    Settings
+                </a>
+            </li> {% endcomment %}
+        </ul>
+    </div>
+</nav>

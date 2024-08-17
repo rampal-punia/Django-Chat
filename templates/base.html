@@ -1,60 +1,66 @@
 {% load static %}
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  {% block page_meta %}
-  {% endblock %}
-
-  {# Vendor styles #}
-  {% block vendor_css %}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-  {% endblock %}
-
-  {# Global styles #}
-  {% block site_css %}
-    <link rel="stylesheet" type="text/css" media="all" href="{% static 'css/styles/style.css' %}" />
-  {% endblock %}
-
-  {# Page-specific styles #}
-  {% block on_page_css %}{% endblock %}
-
-  {% block extra_head %}
-    {# Extra header stuff (scripts, styles, metadata, etc) #}
-  {% endblock %}
-
-  <title>{% block page_title %}Home{% endblock %}</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DjangoChat{% block title %}{% endblock %}</title>
+  <link rel="stylesheet" type="text/css" media="all" href="{% static 'css/styles/style.css' %}" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  
+  {% block on_page_css %}{% endblock on_page_css %}
+  
 </head>
-<body class="{% block body_class %}{% endblock %}">
-  {% include 'partials/_nav.html' %}
-{% block leftbar %}
-    {# Leftbar on the Page #}
-{% endblock %}
-{% block content %}
-    {# Page content will go here #}
-{% endblock %}
+<body>
 
-{# Modal HTML #}
-{% block modals %}
-{% endblock %}
+  {# Button For Collapsable Leftbar #}
+  <button class="btn btn-primary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
 
-{# Vendor javascript #}
-{% block vendor_js %}
-{% endblock %}
+  <button id="sidebarToggle" class="btn btn-primary d-none d-md-block">
+      <span class="navbar-toggler-icon"></span>
+  </button>
 
-{# Global javascript #}
-{% block site_js %}
-  {% include 'partials/_scripts.html' %}
-  <script src="{% static 'js/main.js' %}"></script>
-{% endblock %}
+  <div class="fluid-container">
+    <div class="row">
 
-{# Shared data for javascript #}
-{% block shared_data %}
-{% endblock %}
+      {# Leftbar here #}
+      {% block leftbar %}
+        {% include 'partials/_leftbar.html' %}
+      {% endblock %}
 
-{# Page javascript #}
-{% block on_page_js %}
-{% endblock %}
+      {# Main Block here #}
+      <main class="col-md-10 ms-sm-auto col-lg-10 px-md-4 main-content">
+        {# Header here #}
+        {% block header %}
+          {% include 'partials/_header.html' %}
+        {% endblock %}
+        {% include "partials/_messages.html" %}
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-2 pb-2 mb-3">
+          {% block content %}
+              {# Page content will go here #}
+          {% endblock %}
+        </div>
+      </main>
+    </div>
+  </div>
+
+  {# Footer here #}
+  {% block footer %}
+    {% include 'partials/_footer.html' %}
+  {% endblock %}
+
+  {# Modal HTML #}
+  {% block modals %}{% endblock %}
+
+  {# Global javascript #}
+  {% block site_js %}
+    {% include 'partials/_scripts.html' %}
+  {% endblock %}
+
+  {# On Page javascript #}
+  {% block on_page_js %}{% endblock %}
+  {% block extra_js %}{% endblock %}
 </body>
 </html>
