@@ -23,7 +23,7 @@ urlpatterns = [
          name='registration_under_approval_url'
          ),
 
-    path('',
+    path('login/',
          auth_views.LoginView.as_view(template_name='users/login.html'),
          name='login'
          ),
