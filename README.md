@@ -1,4 +1,4 @@
-# Django Chat Webapp
+# Django-Chat Webapp
 
 A real-time chat application built with Django, featuring seamless communication with an AI language model.
 
@@ -7,8 +7,10 @@ A real-time chat application built with Django, featuring seamless communication
 - [Technologies Used](#technologies-used)
 - [Project Structure](#project-structure)
 - [Installation](#installation)
+- [Configuration](#configuration)
 - [Usage](#usage)
-- [API Integration](#api-integration)
+- [API Endpoints](#api-endpoints)
+- [WebSocket Integration](#websocket-integration)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -19,28 +21,34 @@ A real-time chat application built with Django, featuring seamless communication
 - User authentication and conversation management
 - Automatic conversation title generation
 - Markdown support for message rendering
+- RESTful API for conversations and messages
 - Responsive design for various devices
 
 ## Technologies Used
 
-- Django: Web framework for backend development
+- Django 4.x: Web framework for backend development
 - Channels: For WebSocket support and asynchronous capabilities
+- Django Rest Framework: For building RESTful APIs
 - Langchain: For integrating with various language models
 - Hugging Face Transformers: For accessing pre-trained language models
+- Redis: As a channel layer for WebSocket communication
+- Daphne: ASGI server for running Django with WebSocket support
+- Bootstrap 5: For responsive frontend design
 - JavaScript: For frontend interactivity
-- HTML/CSS: For structuring and styling the user interface
 
 ## Project Structure
 
 The main components of the chat application include:
 
-- `consumers.py`: WebSocket consumer for handling real-time communication
-- `models.py`: Database models for Conversation and Message
-- `views.py`: Django views for rendering pages and handling requests
-- `urls.py`: URL routing for the application
-- `routing.py`: WebSocket routing configuration
-- `configure_llm.py`: Configuration for language model integration
-- `chat.html`: Main template for the chat interface
+- `chat/consumers.py`: WebSocket consumer for handling real-time communication
+- `chat/models.py`: Database models for Conversation and Message
+- `chat/views.py`: Django views for rendering pages and handling requests
+- `chat/urls.py`: URL routing for the chat application
+- `config/routing.py`: WebSocket routing configuration
+- `chat/configure_llm.py`: Configuration for language model integration
+- `chat/templates/chat/chat.html`: Main template for the chat interface
+- `chat/api.py`: ViewSets for RESTful API
+- `chat/serializers.py`: Serializers for API data representation
 
 ## Installation
 
@@ -63,7 +71,7 @@ The main components of the chat application include:
 
 4. Set up your environment variables:
    - Create a `.env` file in the project root
-   - Add necessary variables (e.g., `SECRET_KEY`, `DEBUG`, `HUGGINGFACE_API_TOKEN`)
+   - Add necessary variables (e.g., `DJANGO_SECRET_KEY`, `DEBUG`, `HUGGINGFACEHUB_API_TOKEN`)
 
 5. Run migrations:
    ```
@@ -75,6 +83,17 @@ The main components of the chat application include:
    python manage.py runserver
    ```
 
+## Configuration
+
+The project uses a `base.py` file for Django settings. Key configurations include:
+
+- `INSTALLED_APPS`: Includes 'daphne', 'channels', 'rest_framework', 'corsheaders', and 'drf_spectacular' among others.
+- `ASGI_APPLICATION`: Set to 'config.asgi.application' for WebSocket support.
+- `CHANNEL_LAYERS`: Configured to use Redis as the backend.
+- `REST_FRAMEWORK`: Configured with default permission classes and authentication classes.
+- `SPECTACULAR_SETTINGS`: Configuration for API documentation using drf-spectacular.
+- `HUGGINGFACE_API_TOKEN`: Token for accessing Hugging Face models.
+
 ## Usage
 
 1. Register a new account or log in to an existing one.
@@ -83,19 +102,29 @@ The main components of the chat application include:
 4. The AI assistant will respond in real-time.
 5. You can view your conversation history and manage your chats from the dashboard.
 
-## API Integration
+## API Endpoints
 
-This project integrates with the Hugging Face API for language model inference and title generation. To use these features:
+The project includes a RESTful API for conversations and messages. Key endpoints include:
 
-1. Sign up for a Hugging Face account and obtain an API token.
-2. Add your Hugging Face API token to the `.env` file:
-   ```
-   HUGGINGFACE_API_TOKEN=your_token_here
-   ```
+- `/api/conversations/`: List and create conversations
+- `/api/conversations/<uuid:pk>/`: Retrieve, update, or delete a specific conversation
+- `/api/messages/`: List and create messages
+- `/api/messages/<int:pk>/`: Retrieve, update, or delete a specific message
 
-The application uses the following models:
-- Text generation: Various models including Mistral and LLaMA variants
-- Title generation: "czearing/article-title-generator"
+API documentation is available at:
+- `/api/schema/swagger-ui/`: Swagger UI for API documentation
+- `/api/schema/redoc/`: ReDoc for API documentation
+
+## WebSocket Integration
+
+The application uses WebSockets for real-time communication. The WebSocket consumer is defined in `chat/consumers.py` and handles the following operations:
+
+- Establishing WebSocket connections
+- Receiving and processing messages
+- Generating AI responses using language models
+- Sending responses back to the client
+
+WebSocket routing is configured in `config/routing.py`.
 
 ## Contributing
 

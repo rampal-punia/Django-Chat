@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     #### Third Party Apps #####
     'rest_framework',
     'corsheaders',
+    'drf_spectacular',
     'crispy_forms',
     'crispy_bootstrap5',
 ]
@@ -178,5 +179,23 @@ CHANNEL_LAYERS = {
 
 # For development only. Configure more strictly for production.
 CORS_ALLOW_ALL_ORIGINS = True
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Chat API',
+    'DESCRIPTION': 'API for the Django Chat application',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
