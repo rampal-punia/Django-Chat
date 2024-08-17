@@ -4,6 +4,14 @@
 
 Django-Chat is an innovative, AI-powered chat application that combines the robustness of Django with cutting-edge language models. This project showcases the seamless integration of real-time communication and artificial intelligence, providing users with an intelligent conversational experience. Leveraging WebSockets for instant messaging and Hugging Face's state-of-the-art language models, Django-Chat offers responsive, context-aware interactions. The application features user authentication, conversation management, and automatic title generation, all wrapped in a clean, intuitive interface. With its RESTful API and detailed documentation, Django-Chat is not just a functional chat platform but also a valuable learning resource for developers interested in combining Django, WebSockets, and AI technologies. Whether you're looking to deploy a smart chatbot or explore advanced web development techniques, Django-Chat provides a solid foundation for your next-level web application.
 
+## Quick Overview
+
+|||
+|----|----|
+|<img src="static/imgs/home-page.png" >|<img src="static/imgs/dj-chat.png" >|
+|<img src="static/imgs/api_schema_swagger.png" >|<img src="static/imgs/api_schema_redoc.png" >|
+|||
+
 ## Table of Contents
 - [Features](#features)
 - [Technologies Used](#technologies-used)
