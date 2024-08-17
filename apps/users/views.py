@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.generic.base import TemplateView
+from django.contrib.auth.views import LogoutView
+from django.urls import reverse_lazy
 from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
 from .models import CustomUser as User
 
@@ -53,3 +55,8 @@ def profile(request):
     }
 
     return render(request, 'users/profile.html', context)
+
+
+class CustomLogoutView(LogoutView):
+    # Redirect to home page after logout
+    next_page = reverse_lazy('chat:home_url')

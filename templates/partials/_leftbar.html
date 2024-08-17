@@ -1,4 +1,4 @@
-<nav id="sidebarMenu" class="col-md-2 col-lg-2 d-md-block bg-dark sidebar collapse text-white">
+<nav id="sidebarMenu" class="col-md-3 col-lg-3 d-md-block bg-dark sidebar collapse text-white">
     <div class="sidebar-sticky pt-3">
         <ul class="nav flex-column">
             <li class="nav-item">
@@ -19,7 +19,7 @@
                     My Conversations
                 </a>
             </li>
-            {% comment %} <li class="nav-item">
+            <li class="nav-item">
                 <a class="nav-link" href="#">
                     <span data-feather="bar-chart-2"></span>
                     Analytics
@@ -30,7 +30,35 @@
                     <span data-feather="layers"></span>
                     Settings
                 </a>
-            </li> {% endcomment %}
+            </li>
         </ul>
+        <ul class="nav flex-column mt-auto">
+            {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'users:profile' %}">
+                        <span data-feather="user"></span> Profile
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <form method="post" action="{% url 'users:logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link">
+                            <span data-feather="log-out"></span> Logout
+                        </button>
+                    </form>
+                </li>
+            {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'users:login' %}">
+                        <span data-feather="log-in"></span> Login
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'users:register' %}">
+                        <span data-feather="user-plus"></span> Sign Up
+                    </a>
+                </li>
+            {% endif %}
+    </ul>
     </div>
 </nav>

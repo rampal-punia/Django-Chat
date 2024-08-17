@@ -6,14 +6,8 @@
   {{ request.user.username|capfirst }}'s Profile
 {% endblock title %}
 
-{% block leftbar %}
-<div class="col-sm-3">
-    
-</div>
-{% endblock leftbar %}
-
 {% block content %}
-    <div class="col-sm-7">
+    <div class="col-sm-7 col-sm-7 mx-5">
       <div class="content-section">
         <div class="media">
           <img class="rounded-circle account-img" src="{{ user.profile.image.url }}">
