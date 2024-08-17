@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    Home Page
+{% endblock title %}
+
+{% block content %}
+<div class="col-md-11 col-sm-11 mx-2">
+    <div class="row">
+        <h1 class="display-4 mb-4">Django Chat Platform: Features</h1>
+        <div class="col-sm-6 mb-3 mb-sm-0">
+            <div class="card border-primary mb-3">
+                <div class="card-header">
+                    Dj-chatbot
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Start a chat</h5>
+                    <p class="card-text">Get talkative along with gaining informations from DjChat</p>
+                    <a href="{% url "chat:new_conversation_url" %}" class="btn btn-outline-primary">DjChat</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 mb-3 mb-sm-0">
+            <div class="card border-primary mb-3">
+                <div class="card-header">
+                    Some Other features
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">May be rags (Next)</h5>
+                    <p class="card-text">Upload a document</p>
+                    <a href="#" class="btn btn-outline-primary">Currenly Not Included</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>  
+{% endblock content %}
