@@ -2,7 +2,11 @@
 
 ## About
 
-Django-Chat is an innovative, AI-powered chat application that combines the robustness of Django with cutting-edge language models. This project showcases the seamless integration of real-time communication and artificial intelligence, providing users with an intelligent conversational experience. Leveraging WebSockets for instant messaging and Hugging Face's state-of-the-art language models, Django-Chat offers responsive, context-aware interactions. The application features user authentication, conversation management, and automatic title generation, all wrapped in a clean, intuitive interface. With its RESTful API and detailed documentation, Django-Chat is not just a functional chat platform but also a valuable learning resource for developers interested in combining Django, WebSockets, and AI technologies. Whether you're looking to deploy a smart chatbot or explore advanced web development techniques, Django-Chat provides a solid foundation for your next-level web application.
+Django-Chat is an innovative, AI-powered chat application that combines the robustness of Django with cutting-edge language models. This project showcases the seamless integration of real-time communication and artificial intelligence, providing users with an intelligent conversational experience. 
+
+Leveraging WebSockets for instant messaging and Hugging Face's state-of-the-art language models, Django-Chat offers responsive, context-aware interactions. The application features user authentication, conversation management, and automatic title generation, all wrapped in a clean, intuitive interface. 
+
+With its RESTful API and detailed documentation, Django-Chat is not just a functional chat platform but also a valuable learning resource for developers interested in combining Django, WebSockets, and AI technologies. Whether you're looking to deploy a smart chatbot or explore web development techniques, Django-Chat provides a solid foundation for your next-level web application.
 
 ## Quick Overview
 
@@ -65,7 +69,7 @@ The main components of the chat application include:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/Django-Chat.git
+   git clone https://github.com/rampal-punia/Django-Chat.git
    cd Django-Chat
    ```
 
@@ -146,6 +150,20 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+## Disclaimer
+
+This project is intended as a learning exercise and demonstration of integrating various technologies, including:
+
+- Django
+- Django Channels
+- Django REST Framework
+- LangChain
+- Hugging Face Endpoint APIs
+
+Please note that this application is not designed or tested for production use. It serves as an educational resource and a showcase of technology integration rather than a production-ready web application.
+
+Contributors and users are welcome to explore, learn from, and build upon this project for educational purposes.
 
 ## License
 
