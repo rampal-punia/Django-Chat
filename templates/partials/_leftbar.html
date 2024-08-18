@@ -1,20 +1,21 @@
+{% load static %}
 <nav id="sidebarMenu" class="col-sm-3 col-md-3 col-lg-2 d-md-block bg-dark sidebar collapse text-white">
     <div class="sidebar-sticky pt-3">
         <ul class="nav flex-column mb-5">
             <li class="nav-item">
-                <a class="nav-link active" href="{% url "chat:home_url" %}">
+                <a class="nav-link {% if request.resolver_match.url_name == 'home_url' %}active{% endif %}" href="{% url 'chat:home_url' %}">
                     <span data-feather="home"></span>
                     Dashboard
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{% url "chat:new_conversation_url" %}">
+                <a class="nav-link {% if request.resolver_match.url_name == 'new_conversation_url' %}active{% endif %}" href="{% url 'chat:new_conversation_url' %}">
                     <span data-feather="message-square"></span> <!-- Chat -->
                     New DjChat
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{% url "chat:conversation_list_url" %}">
+                <a class="nav-link {% if request.resolver_match.url_name == 'conversation_list_url' %}active{% endif %}" href="{% url 'chat:conversation_list_url' %}">
                     <span data-feather="message-circle"></span> <!-- Conversations -->
                     My Conversations
                 </a>
@@ -51,29 +52,32 @@
             </li>
         </ul>
         <hr>
+        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+            <span>User</span>
+        </h6>
         <ul class="nav flex-column">
             {% if user.is_authenticated %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'users:profile' %}">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'users:profile' %}">
                         <span data-feather="user"></span> Profile
                     </a>
                 </li>
                 <li class="nav-item">
                     <form method="post" action="{% url 'users:logout' %}">
                         {% csrf_token %}
-                        <button type="submit" class="nav-link">
+                        <button type="submit" class="nav-link btn btn-link">
                             <span data-feather="log-out"></span> Logout
                         </button>
                     </form>
                 </li>
             {% else %}
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'users:login' %}">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}" href="{% url 'users:login' %}">
                         <span data-feather="log-in"></span> Login
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'users:register' %}">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'register' %}active{% endif %}" href="{% url 'users:register' %}">
                         <span data-feather="user-plus"></span> Sign Up
                     </a>
                 </li>
