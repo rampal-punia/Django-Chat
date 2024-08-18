@@ -24,12 +24,24 @@ body {
 }
 
 .sidebar .nav-link {
-    font-weight: 500;
+    font-weight: 400;
     color: #eaeaea;
+    transition: color 0.3s ease, font-weight 0.3s ease;
 }
 
 .sidebar .nav-link:hover {
     color: #b5b3b1;
+}
+
+.sidebar .nav-link.active {
+    color: #05a9fa;
+    font-weight: 500;
+}
+
+.sidebar .nav-link.active {
+    border-left: 3px solid #05a9fa;
+    padding-left: 13px;
+    /* Adjust padding to account for the border */
 }
 
 .sidebar-heading {
