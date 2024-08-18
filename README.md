@@ -10,6 +10,7 @@ Django-Chat is an innovative, AI-powered chat application that combines the robu
 |----|----|
 |<img src="static/imgs/home-page.png" >|<img src="static/imgs/dj-chat.png" >|
 |<img src="static/imgs/api_schema_swagger.png" >|<img src="static/imgs/api_schema_redoc.png" >|
+|<img src="static/imgs/profile.png" >|<img src="static/imgs/register.png" >|
 |||
 
 ## Table of Contents
