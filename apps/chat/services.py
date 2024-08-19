@@ -4,10 +4,10 @@ import io
 import numpy as np
 import librosa
 import speech_recognition as sr
-from pydub import AudioSegment
 from PIL import Image
-from transformers import pipeline
+from transformers import pipeline, AutoFeatureExtractor
 from gtts import gTTS
+import torch
 
 from .models import Message, ImageAnalysis, AudioAnalysis
 from ultralytics import YOLOWorld
@@ -15,10 +15,23 @@ from ultralytics import YOLOWorld
 
 class MultiModalHandler:
     def __init__(self) -> None:
-        self.image_classifier = pipeline('image-classification')
+        model_name = "google/vit-base-patch16-224"
+        # Use the fast image processor
+        feature_extractor = AutoFeatureExtractor.from_pretrained(
+            model_name, use_fast=True)
+
+        # Determine the device (CPU or GPU)
+        device = 0 if torch.cuda.is_available() else -1
+
+        self.image_classifier = pipeline(
+            "image-classification",
+            model=model_name,
+            feature_extractor=feature_extractor,
+            device=device
+        )
         self.speech_recognizer = sr.Recognizer()
 
-    def process_messages(self, message):
+    def process_message(self, message):
         if message.content_type == 'IM':
             return self.process_image(message)
         elif message.content_type == 'AU':
@@ -27,14 +40,14 @@ class MultiModalHandler:
             return self.process_video(message)
 
     def process_image(self, message):
-        image = Image.open(message.file_content)
+        image = Image.open(message.file)
         results = self.image_classifier(image)
         analysis_result = {'classifications': results}
         message.imageanalysis.create(analysis_result=analysis_result)
         return analysis_result
 
     def process_audio(self, message):
-        audio_file = message.file_content.path
+        audio_file = message.file.path
         text = self.speech_to_text(audio_file)
         analysis_result = {'transcription': text}
         message.audioanalysis.create(analysis_result=analysis_result)

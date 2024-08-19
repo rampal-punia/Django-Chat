@@ -1,6 +1,8 @@
 # apps/chat/consumers.py
 
 import json
+import base64
+from django.core.files.base import ContentFile
 from asgiref.sync import sync_to_async
 
 import requests
@@ -54,18 +56,26 @@ class ChatConsumer(AsyncWebsocketConsumer):
         '''Run on receiving text data from front-end.'''
         data = json.loads(text_data)
         # content = data.get('message')    # front-end message
-        message_type = data.get('type', 'TEXT')
+        content_type = data.get('type', 'TE')
         content = data.get('content')
         uuid = data.get('uuid')
 
         conversation = await self.get_or_create_conversation(uuid)
-        user_message = await self.save_message(
-            conversation,
-            content,
-            message_type,
-            is_from_user=True
-        )
-        if message_type != 'TE':
+        if content_type == 'TE':
+            user_message = await self.save_message(
+                conversation,
+                content,
+                content_type,
+                is_from_user=True
+            )
+        elif content_type != ['IM', 'AU']:
+            user_message = await self.save_message(
+                conversation=conversation,
+                content=f"User uploaded a {'image' if content_type == 'IM' else 'audio'} file",
+                content_type=content_type,
+                file=content,
+                is_from_user=True
+            )
             analysis_result = await self.multimodal_handler.process_message(user_message)
             await self.send(text_data=json.dumps({
                 'type': 'analysis_result',
@@ -114,9 +124,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
             ai_message = await self.save_message(conversation, ai_response, is_from_user=False, in_reply_to=user_message)
 
-            # Generate speech from the AI response
-            audio_file = self.multimodal_handler.text_to_speech(
-                ai_response, f'ai_response_{ai_message.id}.mp3')
+            if user_message.content_type != 'TE':
+                # Generate speech from the AI response
+                audio_file = self.multimodal_handler.text_to_speech(
+                    ai_response, f'ai_response_{ai_message.id}.mp3')
 
             await self.send(text_data=json.dumps({
                 'type': 'ai_response',
@@ -142,13 +153,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return conversation
 
     @database_sync_to_async
-    def save_message(self, conversation, content, is_from_user=True, in_reply_to=None):
-        return Message.objects.create(
+    def save_message(self, conversation, content, content_type='TE', is_from_user=True, in_reply_to=None, file_content=None):
+        msg = Message.objects.create(
             conversation=conversation,
             content=content,
+            content_type=content_type,
             is_from_user=is_from_user,
             in_reply_to=in_reply_to
         )
+        if file_content:
+            msg.file.save(file_content.name, file_content, save=True)
+
+        return msg
 
 
 @database_sync_to_async

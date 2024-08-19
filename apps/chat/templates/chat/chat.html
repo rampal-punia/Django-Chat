@@ -19,12 +19,20 @@
                             {% if message.content_type == 'TE' %}
                                 <div class="question-textarea">{{ message.content }}</div>
                             {% elif message.content_type == 'IM' %}
-                                <img src="{{ message.file_content.url }}" alt="User uploaded image" class="img-fluid" style="max-width: 300px;">
+                                {% if message.file %}
+                                    <img src="{{ message.file.url }}" alt="User uploaded image" class="img-fluid" style="max-width: 300px;">
+                                {% else %}
+                                    <p>Image file not found</p>
+                                {% endif %}
                             {% elif message.content_type == 'AU' %}
-                                <audio controls>
-                                    <source src="{{ message.file_content.url }}" type="audio/mpeg">
-                                    Your browser does not support the audio element.
-                                </audio>
+                                {% if message.file %}
+                                    <audio controls>
+                                        <source src="{{ message.file.url }}" type="audio/mpeg">
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                {% else %}
+                                    <p>Audio file not found</p>
+                                {% endif %}
                             {% endif %}
                         </div>
                     {% else %}
@@ -34,9 +42,9 @@
                                     <div class="message-content">
                                         {{ message.content|markdown_to_html|safe }}
                                     </div>
-                                    {% if message.file_content %}
+                                    {% if message.file %}
                                         <audio controls>
-                                            <source src="{{ message.file_content.url }}" type="audio/mpeg">
+                                            <source src="{{ message.file.url }}" type="audio/mpeg">
                                             Your browser does not support the audio element.
                                         </audio>
                                     {% endif %}
@@ -124,7 +132,7 @@
             }));
             displayUserMessage(file, fileType);
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(file);  // This will include the data URL prefix
     }
 
     function displayUserMessage(content, type) {

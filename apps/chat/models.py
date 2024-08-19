@@ -60,7 +60,7 @@ class Message(CreationModificationDateBase):
         on_delete=models.CASCADE,
         related_name='messages'
     )
-    content = models.TextField()
+    content = models.TextField(default='Data other than Text')
     is_from_user = models.BooleanField(default=True)
     in_reply_to = models.ForeignKey(
         'self',
@@ -74,7 +74,7 @@ class Message(CreationModificationDateBase):
         choices=ContentType.choices,
         default=ContentType.TEXT
     )
-    file_content = models.FileField(
+    file = models.FileField(
         upload_to='message_files/',
         null=True,
         blank=True
