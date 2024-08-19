@@ -1,3 +1,5 @@
+# apps/chat/models.py
+
 import uuid
 
 from django.db import models
@@ -47,6 +49,12 @@ class Conversation(CreationModificationDateBase):
 
 
 class Message(CreationModificationDateBase):
+    class ContentType(models.TextChoices):
+        TEXT = 'TE', _('Text')
+        IMAGE = 'IM', _('Image')
+        AUDIO = 'AU', _('Audio')
+        VIDEO = 'VI', _('Video')
+
     conversation = models.ForeignKey(
         'chat.Conversation',
         on_delete=models.CASCADE,
@@ -61,6 +69,16 @@ class Message(CreationModificationDateBase):
         on_delete=models.SET_NULL,
         related_name='replies'
     )
+    content_type = models.CharField(
+        max_length=2,
+        choices=ContentType.choices,
+        default=ContentType.TEXT
+    )
+    file_content = models.FileField(
+        upload_to='message_files/',
+        null=True,
+        blank=True
+    )
 
     class Meta:
         ordering = ['created']
@@ -71,3 +89,13 @@ class Message(CreationModificationDateBase):
 
     def __str__(self) -> str:
         return f"{self.id} - {self.content[:50]}"
+
+
+class ImageAnalysis(models.Model):
+    message = models.OneToOneField(Message, on_delete=models.CASCADE)
+    analysis_result = models.JSONField()
+
+
+class AudioAnalysis(models.Model):
+    message = models.OneToOneField(Message, on_delete=models.CASCADE)
+    analysis_result = models.JSONField()

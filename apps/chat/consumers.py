@@ -1,6 +1,4 @@
-'''
-Convochat: Chat consumer for real-time interaction with LLM
-'''
+# apps/chat/consumers.py
 
 import json
 from asgiref.sync import sync_to_async
@@ -14,6 +12,7 @@ from django.conf import settings
 
 from . import configure_llm
 from .models import Conversation, Message
+from .services import MultiModalHandler
 # from .tasks import process_ai_response, process_user_message
 
 # Title generation API
@@ -40,6 +39,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.conversation_id = self.scope['url_route']['kwargs'].get(
             'conversation_id')
 
+        self.multimodal_handler = MultiModalHandler()
+
         await self.accept()
         await self.send(text_data=json.dumps({
             'type': 'welcome',
@@ -52,11 +53,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data=None):
         '''Run on receiving text data from front-end.'''
         data = json.loads(text_data)
-        fe_message = data.get('message')    # front-end message
+        # fe_message = data.get('message')    # front-end message
+        message_type = data.get('type', 'TEXT')
+        fe_message = data.get('content')
         uuid = data.get('uuid')
 
         conversation = await self.get_or_create_conversation(uuid)
-        user_message = await self.save_message(conversation, fe_message, is_from_user=True)
+        user_message = await self.save_message(
+            conversation,
+            fe_message,
+            message_type,
+            is_from_user=True
+        )
+        if message_type != 'TE':
+            analysis_result = await sync_to_async(self.multimodal_handler.process_message)(user_message)
 
         await self.process_response(fe_message, conversation, user_message)
 

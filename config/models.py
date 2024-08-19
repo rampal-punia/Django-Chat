@@ -1,12 +1,7 @@
-from urllib.parse import urlparse, urlunparse
-from django.conf import settings
+# config/models.py
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.utils.safestring import mark_safe
-from django.template.loader import render_to_string
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.core.exceptions import FieldError
 
 
 class CreationModificationDateBase(models.Model):

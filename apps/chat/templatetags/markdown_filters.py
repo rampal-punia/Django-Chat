@@ -1,3 +1,5 @@
+# apps/chat/templatetags/markdown_filters.py
+
 from django import template
 from markdown import markdown
 import bleach

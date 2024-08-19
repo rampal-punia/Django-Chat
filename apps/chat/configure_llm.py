@@ -1,3 +1,5 @@
+# apps/chat/configure_llm.py
+
 from langchain_core.prompts import ChatPromptTemplate, ChatMessagePromptTemplate
 from langchain_huggingface.llms import HuggingFaceEndpoint
 from langchain_core.output_parsers import StrOutputParser
