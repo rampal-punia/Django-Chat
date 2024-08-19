@@ -84,9 +84,40 @@
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        handleWebSocketMessage(data);
+        if (data.type === 'error') {
+            displayErrorMessage(data.message);
+        } else {
+            handleWebSocketMessage(data);
+        }
     };
 
+    function displayErrorMessage(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'alert alert-danger';
+        errorDiv.textContent = message;
+        document.querySelector('#qa-container').appendChild(errorDiv);
+    }
+
+    function sendFile(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const fileContent = e.target.result;
+            const fileType = file.type.startsWith('image') ? 'IM' : 
+                             file.type.startsWith('audio') ? 'AU' : 'UN';
+            if (fileType === 'UN') {
+                displayErrorMessage('Unsupported file type. Please upload an image or audio file.');
+                return;
+            }
+            chatSocket.send(JSON.stringify({
+                'type': fileType,
+                'content': fileContent,
+                'uuid': conversationId
+            }));
+            displayUserMessage(file, fileType);
+        };
+        reader.readAsDataURL(file);
+    }
+    
     chatSocket.onclose = function(e) {
         console.error('Chat socket closed unexpectedly');
     };

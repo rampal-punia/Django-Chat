@@ -92,10 +92,18 @@ class Message(CreationModificationDateBase):
 
 
 class ImageAnalysis(models.Model):
-    message = models.OneToOneField(Message, on_delete=models.CASCADE)
+    message = models.OneToOneField(
+        Message,
+        on_delete=models.CASCADE,
+        related_name='imageanalysis'
+    )
     analysis_result = models.JSONField()
 
 
 class AudioAnalysis(models.Model):
-    message = models.OneToOneField(Message, on_delete=models.CASCADE)
+    message = models.OneToOneField(
+        Message,
+        on_delete=models.CASCADE,
+        related_name='audioanalysis'
+    )
     analysis_result = models.JSONField()

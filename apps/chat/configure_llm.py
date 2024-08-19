@@ -14,6 +14,7 @@ def configure_llm(model_name, **kwargs):
         "mistral-7b": "mistralai/Mistral-7B-Instruct-v0.3",
         "mistral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1",
         "llama2-7b": "meta-llama/Llama-2-7b-chat-hf",
+        "llama2-7b-chat": "meta-llama/Llama-2-70b-chat",
         "llama3-8b": "meta-llama/Meta-Llama-3-8B",
         "llama2-13b": "meta-llama/Llama-2-13b-chat-hf",
         "llama2-70b": "meta-llama/Llama-2-70b-chat-hf",
@@ -51,6 +52,7 @@ prompt = ChatPromptTemplate.from_messages([
 # Example usage
 llm = configure_llm(
     "mistral-8x7b",
+    # "llama2-7b-chat",
     temperature=0.5,
     top_k=25,
     max_new_tokens=1000
