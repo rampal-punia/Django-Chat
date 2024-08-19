@@ -74,11 +74,13 @@ class MultiModalHandler:
             text = "Could not request results from the speech recognition service"
         return text
 
-    @sync_to_async
-    def text_to_speech(self, text, output_file):
-        tts = gTTS(text=text, lang='en')
-        tts.save(output_file)
-        return output_file
+    async def text_to_speech(self, text, output_file):
+        def _text_to_speech():
+            tts = gTTS(text=text, lang='en')
+            tts.save(output_file)
+            return output_file
+
+        return await sync_to_async(_text_to_speech)()
 
     async def process_video(self, message):
         # Implement video processing logic here

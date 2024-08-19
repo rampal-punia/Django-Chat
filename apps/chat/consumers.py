@@ -1,8 +1,8 @@
-# apps/chat/consumers.py
+'''
+Convochat: Chat consumer for real-time interaction with LLM
+'''
 
 import json
-import base64
-from django.core.files.base import ContentFile
 from asgiref.sync import sync_to_async
 
 import requests
@@ -14,7 +14,7 @@ from django.conf import settings
 
 from . import configure_llm
 from .models import Conversation, Message
-from .services import MultiModalHandler
+# from .services import MultiModalHandler
 # from .tasks import process_ai_response, process_user_message
 
 # Title generation API
@@ -41,8 +41,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.conversation_id = self.scope['url_route']['kwargs'].get(
             'conversation_id')
 
-        self.multimodal_handler = MultiModalHandler()
-
         await self.accept()
         await self.send(text_data=json.dumps({
             'type': 'welcome',
@@ -55,63 +53,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data=None):
         '''Run on receiving text data from front-end.'''
         data = json.loads(text_data)
-        # content = data.get('message')    # front-end message
-        content_type = data.get('type')
-        content = data.get('content')
+        fe_message = data.get('message')    # front-end message
         uuid = data.get('uuid')
 
-        if not content_type:
-            await self.send(text_data=json.dumps({
-                'type': 'error',
-                'message': 'Content type not specified'
-            }))
-            return
-
         conversation = await self.get_or_create_conversation(uuid)
+        user_message = await self.save_message(conversation, fe_message, is_from_user=True)
 
-        if content_type == 'TE':
-            user_message = await self.save_message(
-                conversation,
-                content,
-                content_type,
-                is_from_user=True
-            )
-        elif content_type in ['IM', 'AU']:
-            try:
-                file_data = content.split(',')[1]
-                file_bytes = base64.b64decode(file_data)
-                file_extension = 'png' if content_type == 'IM' else 'mp3'
-                file_name = f"user_upload_{uuid}.{file_extension}"
+        await self.process_response(fe_message, conversation, user_message)
 
-                user_message = await self.save_message(
-                    conversation=conversation,
-                    content=f"User uploaded a {'image' if content_type == 'IM' else 'audio'} file",
-                    content_type=content_type,
-                    is_from_user=True,
-                    file_content=ContentFile(file_bytes, name=file_name)
-                )
-
-                analysis_result = await self.multimodal_handler.process_message(user_message)
-                await self.send(text_data=json.dumps({
-                    'type': 'analysis_result',
-                    'result': analysis_result
-                }))
-            except Exception as e:
-                await self.send(text_data=json.dumps({
-                    'type': 'error',
-                    'message': f'Error processing file: {str(e)}'
-                }))
-                return
-        else:
-            await self.send(text_data=json.dumps({
-                'type': 'error',
-                'message': f'Unsupported content type: {content_type}'
-            }))
-            return
-
-        await self.process_response(content, conversation, user_message)
-
-    async def process_response(self, content, conversation, user_message):
+    async def process_response(self, fe_message, conversation, user_message):
         try:
             history = await get_conversation_history(conversation.id)
             history_str = '\n'.join(
@@ -119,7 +69,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
             input_with_history = {
                 'history': history_str,
-                'input': content
+                'input': fe_message
             }
 
             # Generate AI response
@@ -132,12 +82,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     output = chunk.get('data', {}).get('output', '')
                     llm_response_chunks.append(output)
 
-            ai_response = ''.join(llm_response_chunks)
+            full_response = ''.join(llm_response_chunks)
 
             # Generate title if needed
             try:
                 if conversation.title == 'Untitled Conversation' or conversation.title is None:
-                    title = await generate_title(ai_response)
+                    title = await generate_title(full_response)
                     await save_conversation_title(conversation, title)
                     await self.send(text_data=json.dumps({
                         'type': 'title',
@@ -146,21 +96,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             except Exception as ex:
                 print(f"Unable to generate title: {ex}")
 
-            if not ai_response:
-                ai_response = "I apologize, but I couldn't generate a response. Please try asking your question again."
+            if not full_response:
+                full_response = "I apologize, but I couldn't generate a response. Please try asking your question again."
 
-            ai_message = await self.save_message(conversation, ai_response, is_from_user=False, in_reply_to=user_message)
+            ai_message = await self.save_message(conversation, full_response, is_from_user=False, in_reply_to=user_message)
 
-            if user_message.content_type != 'TE':
-                # Generate speech from the AI response
-                audio_file = self.multimodal_handler.text_to_speech(
-                    ai_response, f'ai_response_{ai_message.id}.mp3')
-
-            await self.send(text_data=json.dumps({
-                'type': 'ai_response',
-                'message': ai_response,
-                'audio_url': f'/media/ai_responses/ai_response_{ai_message.id}.mp3'
-            }))
         except Exception as ex:
             print(f"Error during LLM response processing: {ex}")
 
@@ -180,17 +120,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return conversation
 
     @database_sync_to_async
-    def save_message(self, conversation, content, content_type='TE', is_from_user=True, in_reply_to=None, file_content=None):
-        msg = Message.objects.create(
+    def save_message(self, conversation, content, is_from_user=True, in_reply_to=None):
+        return Message.objects.create(
             conversation=conversation,
             content=content,
-            content_type=content_type,
             is_from_user=is_from_user,
             in_reply_to=in_reply_to
         )
-        if file_content:
-            msg.file.save(file_content.name, file_content, save=True)
-        return msg
 
 
 @database_sync_to_async
