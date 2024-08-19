@@ -53,24 +53,28 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data=None):
         '''Run on receiving text data from front-end.'''
         data = json.loads(text_data)
-        # fe_message = data.get('message')    # front-end message
+        # content = data.get('message')    # front-end message
         message_type = data.get('type', 'TEXT')
-        fe_message = data.get('content')
+        content = data.get('content')
         uuid = data.get('uuid')
 
         conversation = await self.get_or_create_conversation(uuid)
         user_message = await self.save_message(
             conversation,
-            fe_message,
+            content,
             message_type,
             is_from_user=True
         )
         if message_type != 'TE':
-            analysis_result = await sync_to_async(self.multimodal_handler.process_message)(user_message)
+            analysis_result = await self.multimodal_handler.process_message(user_message)
+            await self.send(text_data=json.dumps({
+                'type': 'analysis_result',
+                'result': analysis_result
+            }))
 
-        await self.process_response(fe_message, conversation, user_message)
+        await self.process_response(content, conversation, user_message)
 
-    async def process_response(self, fe_message, conversation, user_message):
+    async def process_response(self, content, conversation, user_message):
         try:
             history = await get_conversation_history(conversation.id)
             history_str = '\n'.join(
@@ -78,7 +82,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
             input_with_history = {
                 'history': history_str,
-                'input': fe_message
+                'input': content
             }
 
             # Generate AI response
@@ -91,12 +95,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     output = chunk.get('data', {}).get('output', '')
                     llm_response_chunks.append(output)
 
-            full_response = ''.join(llm_response_chunks)
+            ai_response = ''.join(llm_response_chunks)
 
             # Generate title if needed
             try:
                 if conversation.title == 'Untitled Conversation' or conversation.title is None:
-                    title = await generate_title(full_response)
+                    title = await generate_title(ai_response)
                     await save_conversation_title(conversation, title)
                     await self.send(text_data=json.dumps({
                         'type': 'title',
@@ -105,11 +109,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             except Exception as ex:
                 print(f"Unable to generate title: {ex}")
 
-            if not full_response:
-                full_response = "I apologize, but I couldn't generate a response. Please try asking your question again."
+            if not ai_response:
+                ai_response = "I apologize, but I couldn't generate a response. Please try asking your question again."
 
-            ai_message = await self.save_message(conversation, full_response, is_from_user=False, in_reply_to=user_message)
+            ai_message = await self.save_message(conversation, ai_response, is_from_user=False, in_reply_to=user_message)
 
+            # Generate speech from the AI response
+            audio_file = self.multimodal_handler.text_to_speech(
+                ai_response, f'ai_response_{ai_message.id}.mp3')
+
+            await self.send(text_data=json.dumps({
+                'type': 'ai_response',
+                'message': ai_response,
+                'audio_url': f'/media/ai_responses/ai_response_{ai_message.id}.mp3'
+            }))
         except Exception as ex:
             print(f"Error during LLM response processing: {ex}")
 
