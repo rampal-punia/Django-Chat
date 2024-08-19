@@ -127,5 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+**.Identifier
 
 local_folder/
