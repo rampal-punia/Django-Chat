@@ -5,5 +5,5 @@ from . import consumers
 
 websocket_urlpatterns = [
     re_path(
-        r'ws/audio/(?P<conversation_id>[^/]+)?/$', consumers.AudioConsumer.as_asgi()),
+        r'ws/chat/(?P<conversation_id>[^/]+)?/$', consumers.AudioConsumer.as_asgi()),
 ]

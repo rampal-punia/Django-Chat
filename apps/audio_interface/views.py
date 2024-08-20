@@ -13,12 +13,12 @@ from chat.models import Conversation, Message
 
 class AudioConversationView(LoginRequiredMixin, generic.View):
     def get(self, request, *args, **kwargs):
-        return render(request, 'audio_message/audio_message.html')
+        return render(request, 'audio_interface/audio_message.html')
 
 
 class AudioConversationListView(LoginRequiredMixin, generic.ListView):
     model = Conversation
-    template_name = 'audio_message/conversation_list.html'
+    template_name = 'audio_interface/conversation_list.html'
     context_object_name = 'conversations'
 
     def get_queryset(self):
@@ -27,7 +27,7 @@ class AudioConversationListView(LoginRequiredMixin, generic.ListView):
 
 class AudioConversationDetailView(LoginRequiredMixin, generic.DetailView):
     model = Conversation
-    template_name = 'audio_message/audio_message.html'
+    template_name = 'audio_interface/audio_message.html'
     context_object_name = 'conversation'
 
     def get_object(self, queryset=None):
@@ -46,7 +46,7 @@ class AudioConversationDetailView(LoginRequiredMixin, generic.DetailView):
         context = super().get_context_data(**kwargs)
         conversation = self.get_object()
         message_qs = Message.objects.filter(
-            conversation=conversation).order_by("created")
+            conversation=conversation).select_related('audio_content')
 
         context["previous_messages"] = message_qs
         context["conversation_id"] = conversation.id
@@ -56,11 +56,11 @@ class AudioConversationDetailView(LoginRequiredMixin, generic.DetailView):
         if 'pk' not in kwargs:
             # If no pk is provided, create a new conversation and redirect
             new_conversation = self.get_object()
-            return redirect(reverse('audio_message:conversation_detail_url', kwargs={'pk': new_conversation.id}))
+            return redirect(reverse('audio_interface:audio_detail_url', kwargs={'pk': new_conversation.id}))
         return super().get(request, *args, **kwargs)
 
 
 class AudioConversationDeleteView(LoginRequiredMixin, generic.DeleteView):
     model = Conversation
-    template_name = 'audio_message/conversation_confirm_delete.html'
-    success_url = reverse_lazy('audio_message:conversation_list_url')
+    template_name = 'audio_interface/conversation_confirm_delete.html'
+    success_url = reverse_lazy('audio_interface:audio_list_url')

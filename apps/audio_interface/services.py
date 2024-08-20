@@ -9,7 +9,7 @@ from gtts import gTTS
 from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 
-from .models import VoiceMessage
+from .models import AudioMessage
 
 
 class VoiceModalHandler:
@@ -31,9 +31,10 @@ class VoiceModalHandler:
 
     @database_sync_to_async
     def create_audio_analysis(self, message, analysis_result):
-        VoiceMessage.objects.create(
+        AudioMessage.objects.create(
             message=message,
-            analysis_result=analysis_result
+            transcript=analysis_result,
+            duration=duration
         )
 
     def speech_to_text(self, audio_file):

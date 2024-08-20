@@ -6,13 +6,13 @@ from . import views
 app_name = 'audio_interface'
 
 urlpatterns = [
-    path("audio_chats/", views.AudioConversationListView.as_view(),
+    path("chats/", views.AudioConversationListView.as_view(),
          name='audio_list_url'),
-    path('audio_chat/', views.AudioConversationDetailView.as_view(),
+    path('chat/', views.AudioConversationDetailView.as_view(),
          name='new_audio_url'),
-    path('audio_chat/<uuid:pk>/', views.AudioConversationDetailView.as_view(),
+    path('chat/<uuid:pk>/', views.AudioConversationDetailView.as_view(),
          name='audio_detail_url'),
     path("<uuid:pk>/delete/", views.AudioConversationDeleteView.as_view(),
-         name='audio_delete_url'),
+         name='delete_url'),
     path("new/", views.AudioConversationView.as_view(), name='new_audiochat_url'),
 ]

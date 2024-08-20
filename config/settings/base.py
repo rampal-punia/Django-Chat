@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     #### Project Apps ####
     'users',
     'chat',
+    'audio_interface',
 
 
     #### Third Party Apps #####
