@@ -1,7 +1,7 @@
 # apps/chat/admin.py
 
 from django.contrib import admin
-from .models import Conversation, Message
+from .models import Conversation, Message, ChatMessage
 
 
 @admin.register(Conversation)
@@ -25,3 +25,8 @@ class MessageAdmin(admin.ModelAdmin):
     list_filter = (
         'is_from_user', 'conversation__user__username', 'created')
     ordering = ('-created',)
+
+
+@admin.register(ChatMessage)
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'message')

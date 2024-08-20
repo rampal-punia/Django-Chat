@@ -45,7 +45,7 @@ class Conversation(CreationModificationDateBase):
         ]
 
     def __str__(self) -> str:
-        return f"{self.user.username} - {self.title}"
+        return f"{self.user.username} - {self.title[:40]}..."
 
 
 class Message(CreationModificationDateBase):
@@ -81,14 +81,14 @@ class Message(CreationModificationDateBase):
             models.Index(fields=['is_from_user'])
         ]
 
-    def __str__(self) -> str:
-        return f"{self.id} - {self.content[:50]}"
-
 
 class ChatMessage(models.Model):
     message = models.OneToOneField(
-        Message,
+        'chat.Message',
         on_delete=models.CASCADE,
         related_name="chat_content"
     )
     content = models.TextField(default='No Text Data Found')
+
+    def __str__(self) -> str:
+        return f"{self.id} - {self.content[:50]}"

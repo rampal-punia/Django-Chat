@@ -7,7 +7,7 @@ from django.views import generic
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse, reverse_lazy
-from .models import Conversation, Message
+from .models import Conversation, Message, ChatMessage
 
 
 class Dashboard(LoginRequiredMixin, generic.View):
@@ -59,8 +59,7 @@ class ConversationDetailView(LoginRequiredMixin, generic.DetailView):
         context = super().get_context_data(**kwargs)
         conversation = self.get_object()
         message_qs = Message.objects.filter(
-            conversation=conversation).order_by("created")
-
+            conversation=conversation).select_related('chat_content')
         context["previous_messages"] = message_qs
         context["conversation_id"] = conversation.id
         return context

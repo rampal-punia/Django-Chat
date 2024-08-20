@@ -20,14 +20,14 @@
                 <div class="qa-pair" id="qa-pair-{{ forloop.counter }}">
                     {% if message.is_from_user %}
                         <div class="question-area d-flex justify-content-end">
-                            <textarea class="question-textarea text-white" readonly>{{ message.content }}</textarea>
+                            <textarea class="question-textarea text-white" readonly>{{ message.chat_content.content }}</textarea>
                         </div>
                     {% else %}
                         <div class="card">
                             <div class="card-body">
                                 <div class="answer-area">
                                     <div class="message-content">
-                                         {{ message.content|markdown_to_html|safe }}
+                                         {{ message.chat_content.content|markdown_to_html|safe }}
                                     </div>
                                 </div>
                             </div>
@@ -194,6 +194,7 @@
             
             ws.send(JSON.stringify({
                 message: message,
+                type: 'TE',
                 uuid: generateUUID()
             }));
             messageInput.value = '';
