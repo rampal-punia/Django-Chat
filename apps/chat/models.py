@@ -60,7 +60,11 @@ class Message(CreationModificationDateBase):
         on_delete=models.CASCADE,
         related_name='messages'
     )
-    content = models.TextField(default='Data other than Text')
+    content_type = models.CharField(
+        max_length=2,
+        choices=ContentType.choices,
+        default=ContentType.TEXT
+    )
     is_from_user = models.BooleanField(default=True)
     in_reply_to = models.ForeignKey(
         'self',
@@ -68,16 +72,6 @@ class Message(CreationModificationDateBase):
         blank=True,
         on_delete=models.SET_NULL,
         related_name='replies'
-    )
-    content_type = models.CharField(
-        max_length=2,
-        choices=ContentType.choices,
-        default=ContentType.TEXT
-    )
-    file = models.FileField(
-        upload_to='message_files/',
-        null=True,
-        blank=True
     )
 
     class Meta:
@@ -91,19 +85,10 @@ class Message(CreationModificationDateBase):
         return f"{self.id} - {self.content[:50]}"
 
 
-class ImageAnalysis(models.Model):
+class ChatMessage(models.Model):
     message = models.OneToOneField(
         Message,
         on_delete=models.CASCADE,
-        related_name='imageanalysis'
+        related_name="chat_content"
     )
-    analysis_result = models.JSONField()
-
-
-class AudioAnalysis(models.Model):
-    message = models.OneToOneField(
-        Message,
-        on_delete=models.CASCADE,
-        related_name='audioanalysis'
-    )
-    analysis_result = models.JSONField()
+    content = models.TextField(default='No Text Data Found')
