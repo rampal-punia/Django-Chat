@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
-from .services import MultiModalHandler
+# from ...local_folder.revisions.services import MultiModalHandler
 
 
 class ConversationViewSet(viewsets.ModelViewSet):

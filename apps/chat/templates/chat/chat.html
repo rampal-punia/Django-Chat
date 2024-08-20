@@ -13,6 +13,8 @@
 {% block content %}
 <div class="chat-container">
     <div id="qa-container" class="col-md-11 col-xl-11 mx-4">
+        <h2 id="conversation-title">{% if conversation.title %}{{ conversation.title|truncatechars:40 }}{% else %}Untitled Conversation{% endif %}</h2>
+        <hr>
         {% if previous_messages %}
             {% for message in previous_messages %}
                 <div class="qa-pair" id="qa-pair-{{ forloop.counter }}">
@@ -84,9 +86,9 @@
         return;
     }
 
-    if (data.type === 'title') {
-        console.log(data.message);
-        return;
+    if (data.type === 'title_update') {
+        // Update the title in the UI
+        updateConversationTitle(data.title);
     }
 
     if (data.event === 'on_parser_start' || data.event === 'on_parser_stream') {
@@ -99,6 +101,23 @@
             }
         }
     }};
+    
+    function updateConversationTitle(newTitle) {
+        // Update the title in the UI
+        const titleElement = document.getElementById('conversation-title');
+        if (titleElement) {
+            titleElement.textContent = newTitle;
+        }
+
+        // If using a header or navigation component, update it there as well
+        const headerTitleElement = document.getElementById('header-title');
+        if (headerTitleElement) {
+            headerTitleElement.textContent = newTitle;
+        }
+
+        // If want to update the page title
+        document.title = `Chat: ${newTitle}`;
+    }
 
     // Add a question-answer pair to the chat container
     function addQuestionAnswerPair(message, isFromUser, pairId, similarQuestions = null) {

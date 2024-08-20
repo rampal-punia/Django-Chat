@@ -4,7 +4,7 @@ Convochat: Chat consumer for real-time interaction with LLM
 
 import json
 from asgiref.sync import sync_to_async
-
+import aiohttp
 import requests
 from langchain_core.messages import HumanMessage, AIMessage
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -18,13 +18,28 @@ from .models import Conversation, Message
 # from .tasks import process_ai_response, process_user_message
 
 # Title generation API
-API_URL = "https://api-inference.huggingface.co/models/czearing/article-title-generator"
+API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
 headers = {"Authorization": f"Bearer {settings.HUGGINGFACE_API_TOKEN}"}
 
 
-async def generate_title(payload):
-    response = await sync_to_async(requests.post)(API_URL, headers=headers, json=payload)
-    return (await sync_to_async(response.json)())[0]['generated_text']
+async def generate_title(conversation_content):
+    async with aiohttp.ClientSession() as session:
+        async with session.post(API_URL, headers=headers, json={"inputs": conversation_content, "parameters": {"max_length": 50, "min_length": 10}}) as response:
+            result = await response.json()
+            if isinstance(result, list) and len(result) > 0:
+                return result[0]['summary_text']
+            else:
+                return "Untitled Conversation"
+
+
+async def update_conversation_title(conversation, new_title):
+    conversation.title = new_title
+    await database_sync_to_async(conversation.save)()
+
+
+async def get_conversation_content(conversation_id, message_limit=5):
+    messages = await database_sync_to_async(lambda: list(Message.objects.filter(conversation_id=conversation_id).order_by('-created')[:message_limit]))()
+    return " ".join([msg.content for msg in reversed(messages)])
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -82,24 +97,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     output = chunk.get('data', {}).get('output', '')
                     llm_response_chunks.append(output)
 
-            full_response = ''.join(llm_response_chunks)
+            ai_response = ''.join(llm_response_chunks)
 
-            # Generate title if needed
-            try:
-                if conversation.title == 'Untitled Conversation' or conversation.title is None:
-                    title = await generate_title(full_response)
-                    await save_conversation_title(conversation, title)
-                    await self.send(text_data=json.dumps({
-                        'type': 'title',
-                        'message': title
-                    }))
-            except Exception as ex:
-                print(f"Unable to generate title: {ex}")
+            # Generate and update title
+            if conversation.title == 'Untitled Conversation' or conversation.title is None:
+                conversation_content = await get_conversation_content(conversation.id)
+                new_title = await generate_title(conversation_content)
+                await update_conversation_title(conversation, new_title)
+                await self.send(text_data=json.dumps({
+                    'type': 'title_update',
+                    'title': new_title
+                }))
 
-            if not full_response:
-                full_response = "I apologize, but I couldn't generate a response. Please try asking your question again."
+            if not ai_response:
+                ai_response = "I apologize, but I couldn't generate a response. Please try asking your question again."
 
-            ai_message = await self.save_message(conversation, full_response, is_from_user=False, in_reply_to=user_message)
+            ai_message = await self.save_message(conversation, ai_response, is_from_user=False, in_reply_to=user_message)
 
         except Exception as ex:
             print(f"Error during LLM response processing: {ex}")
