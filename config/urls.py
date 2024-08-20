@@ -22,7 +22,8 @@ urlpatterns = [
     path('api/schema/redoc/',
          SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     path('users/', include('users.urls', namespace='users')),
-    path('audio/', include('audio_interface.urls', namespace='audio_interface')),
+    path('audio_interface/', include('audio_interface.urls',
+         namespace='audio_interface')),
 ]
 
 if settings.DEBUG:

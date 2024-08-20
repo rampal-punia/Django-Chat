@@ -62,9 +62,8 @@
 </div>
 {% endblock content %}
 
-{% block on_page_js %}
+{% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/RecordRTC/5.6.2/RecordRTC.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
     let recorder;
     const startRecordingButton = document.getElementById('startRecording');
@@ -127,7 +126,7 @@
                 <div class="card-body">
                     <div class="audio-message">
                         <audio controls src="${data.audio_url}"></audio>
-                        <div class="message-content">${marked.parse(data.message)}</div>
+                        <div class="message-content">${marked(data.message)}</div>
                     </div>
                 </div>
             `;
@@ -199,4 +198,4 @@
     // Connect WebSocket when the page loads
     connectWebSocket();
 </script>
-{% endblock on_page_js %}
+{% endblock extra_js %}

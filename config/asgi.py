@@ -6,6 +6,7 @@ from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 import chat.routing
+import audio_interface.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
 
@@ -14,7 +15,8 @@ application = ProtocolTypeRouter({
     'websocket': SessionMiddlewareStack(
         AuthMiddlewareStack(
             URLRouter(
-                chat.routing.websocket_urlpatterns
+                chat.routing.websocket_urlpatterns +
+                audio_interface.routing.websocket_urlpatterns
             )
         )
     ),

@@ -51,8 +51,9 @@ class AudioChatConsumer(AsyncWebsocketConsumer):
         user_message = await self.save_message(conversation, 'AU', is_from_user=True)
         await self.save_audio_message(user_message, audio_content)
 
-        # Process user audio (speech-to-text)
+        # Process audio (speech-to-text)
         text_content = await voice_handler.process_audio(user_message)
+        print(text_content)
 
         # Send transcription to the client
         await self.send(text_data=json.dumps({
@@ -69,7 +70,7 @@ class AudioChatConsumer(AsyncWebsocketConsumer):
 
         # Save AI's audio message
         ai_message = await self.save_message(conversation, 'AU', is_from_user=False)
-        await self.save_audio_message(ai_message, ai_audio, ai_response)
+        await self.save_audio_message(ai_message, ai_audio)
 
         # Send AI response to the client
         await self.send(text_data=json.dumps({
@@ -80,10 +81,9 @@ class AudioChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def generate_ai_response(self, conversation, input_text):
-        history = await get_conversation_history(conversation.id)
+        history = await self.get_conversation_history(conversation.id)
         history_str = '\n'.join(
-            [f"{'Human' if isinstance(msg, HumanMessage) else 'AI'}:{msg.content}" for msg in history]
-        )
+            [f"{'Human' if msg.is_from_user else 'AI'}:{msg.audio_content.transcript}" for msg in history])
 
         input_with_history = {
             'history': history_str,
@@ -116,12 +116,12 @@ class AudioChatConsumer(AsyncWebsocketConsumer):
         )
 
     @database_sync_to_async
-    def save_audio_message(self, message, audio_content, transcript=''):
+    def save_audio_message(self, message, audio_content):
         audio_file = ContentFile(audio_content, name=f"audio_{message.id}.wav")
         return AudioMessage.objects.create(
             message=message,
             audio_file=audio_file,
-            transcript=transcript,  # This will be updated after processing
+            transcript="",  # This will be updated after processing
             duration=0.0  # This will be updated after processing
         )
 
@@ -130,18 +130,17 @@ class AudioChatConsumer(AsyncWebsocketConsumer):
         return message.chat_content.create(content=content)
 
     @database_sync_to_async
+    def get_conversation_history(self, conversation_id, limit=8):
+        conversation = Conversation.objects.get(id=conversation_id)
+        messages = conversation.messages.order_by('-created')[:limit]
+        return [
+            HumanMessage(content=msg.chat_content.content) if msg.is_from_user else AIMessage(
+                content=msg.chat_content.content)
+            for msg in reversed(messages)
+        ]
+
+    @database_sync_to_async
     def update_audio_message(self, audio_message, transcript, duration):
         audio_message.transcript = transcript
         audio_message.duration = duration
         audio_message.save()
-
-
-@database_sync_to_async
-def get_conversation_history(conversation_id, limit=8):
-    conversation = Conversation.objects.get(id=conversation_id)
-    messages = conversation.messages.order_by('-created')[:limit]
-    return [
-        HumanMessage(content=msg.audio_content.transcript) if msg.is_from_user else AIMessage(
-            content=msg.audio_content.transcript)
-        for msg in reversed(messages)
-    ]

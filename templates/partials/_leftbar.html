@@ -15,6 +15,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'new_conversation_url' %}active{% endif %}" href="{% url 'audio_interface:new_audio_url' %}">
+                    <span data-feather="message-square"></span> <!-- Chat -->
+                    New DjAudioChat
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link {% if request.resolver_match.url_name == 'conversation_list_url' %}active{% endif %}" href="{% url 'chat:conversation_list_url' %}">
                     <span data-feather="message-circle"></span> <!-- Conversations -->
                     My Conversations
