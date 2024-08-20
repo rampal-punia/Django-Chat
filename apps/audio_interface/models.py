@@ -1,7 +1,9 @@
+# apps/audio_interface/models.py
+
 from django.db import models
 
 
-class VoiceMessage(models.Model):
+class AudioMessage(models.Model):
     message = models.OneToOneField(
         'chat.Message',
         on_delete=models.CASCADE,

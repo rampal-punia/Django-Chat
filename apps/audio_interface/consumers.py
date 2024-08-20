@@ -1,6 +1,4 @@
-'''
-Convochat: Chat consumer for real-time interaction with LLM
-'''
+# apps/audio_interface/consumers.py
 
 import json
 from asgiref.sync import sync_to_async
@@ -12,8 +10,9 @@ from channels.db import database_sync_to_async
 
 from django.conf import settings
 
-from . import configure_llm
-from .models import Conversation, Message
+from chat import configure_llm
+from chat.models import Conversation, Message
+from .models import AudioMessage
 # from .services import MultiModalHandler
 # from .tasks import process_ai_response, process_user_message
 
@@ -42,7 +41,7 @@ async def get_conversation_content(conversation_id, message_limit=5):
     return " ".join([msg.content for msg in reversed(messages)])
 
 
-class ChatConsumer(AsyncWebsocketConsumer):
+class AudioConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         '''Accept the connections from front-end'''
         # get the user from scope
