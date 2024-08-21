@@ -130,3 +130,10 @@ dmypy.json
 **.Identifier
 
 local_folder/
+weights/
+
+# Ignore everything in the media folder
+media/*
+
+# But don't ignore default.png
+!media/default.png

@@ -1,6 +1,7 @@
 # apps/audio_interface/consumers.py
 
 import json
+import requests
 from asgiref.sync import sync_to_async
 import aiohttp
 from langchain_core.messages import HumanMessage, AIMessage
@@ -13,7 +14,9 @@ from . import configure_llm
 from .models import Conversation, Message, ChatMessage
 
 # Title generation API
-API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
+# API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
+
+API_URL = "https://api-inference.huggingface.co/models/czearing/article-title-generator"
 headers = {"Authorization": f"Bearer {settings.HUGGINGFACE_API_TOKEN}"}
 
 
@@ -28,7 +31,7 @@ async def generate_title(conversation_content):
                 }) as response:
             result = await response.json()
             if isinstance(result, list) and len(result) > 0:
-                return result[0]['summary_text']
+                return result[0]['generated_text']
             else:
                 return "Untitled Conversation"
 
@@ -75,40 +78,46 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.process_response(input_data, conversation, user_message)
 
     async def process_response(self, input_data, conversation, user_message):
-        history = await get_conversation_history(conversation.id)
-        history_str = '\n'.join(
-            [f"{'Human' if isinstance(msg, HumanMessage) else 'AI'}:{msg.content}" for msg in history]
-        )
-        input_with_history = {
-            'history': history_str,
-            'input': input_data
-        }
+        try:
+            history = await get_conversation_history(conversation.id)
+            history_str = '\n'.join(
+                [f"{'Human' if isinstance(msg, HumanMessage) else 'AI'}:{msg.content}" for msg in history]
+            )
+            input_with_history = {
+                'history': history_str,
+                'input': input_data
+            }
 
-        # Generate AI response
-        llm_response_chunks = []
-        async for chunk in configure_llm.chain.astream_events(input_with_history, version='v2', include_names=['Assistant']):
-            if chunk['event'] in ['on_parser_start', 'on_parser_stream']:
-                await self.send(text_data=json.dumps(chunk))
+            # Generate AI response
+            llm_response_chunks = []
+            async for chunk in configure_llm.chain.astream_events(input_with_history, version='v2', include_names=['Assistant']):
+                if chunk['event'] in ['on_parser_start', 'on_parser_stream']:
+                    await self.send(text_data=json.dumps(chunk))
 
-            if chunk.get('event') == 'on_parser_end':
-                output = chunk.get('data', {}).get('output', '')
-                llm_response_chunks.append(output)
+                if chunk.get('event') == 'on_parser_end':
+                    output = chunk.get('data', {}).get('output', '')
+                    llm_response_chunks.append(output)
 
-        ai_response = ''.join(llm_response_chunks)
+            ai_response = ''.join(llm_response_chunks)
 
-        # Generate and update title
-        if conversation.title == 'Untitled Conversation' or conversation.title is None:
-            new_title = await generate_title(ai_response)
-            await save_conversation_title(conversation, new_title)
-            await self.send(text_data=json.dumps({
-                'type': 'title_update',
-                'title': new_title
-            }))
-        if not ai_response:
-            ai_response = "I apologize, but I couldn't generate a response. Please try asking your question again."
+            # Generate and update title
+            if conversation.title == 'Untitled Conversation' or conversation.title is None:
+                try:
+                    new_title = await generate_title(ai_response)
+                    await save_conversation_title(conversation, new_title)
+                    await self.send(text_data=json.dumps({
+                        'type': 'title_update',
+                        'title': new_title
+                    }))
+                except Exception as ex:
+                    print(f"Unable to generate title: {ex}")
+            if not ai_response:
+                ai_response = "I apologize, but I couldn't generate a response. Please try asking your question again."
 
-        ai_message = await self.save_message(conversation, content_type='TE', is_from_user=False, in_reply_to=user_message)
-        ai_chat_message = await self.save_chat_message(ai_message, ai_response)
+            ai_message = await self.save_message(conversation, content_type='TE', is_from_user=False, in_reply_to=user_message)
+            ai_chat_message = await self.save_chat_message(ai_message, ai_response)
+        except Exception as ex:
+            print(f"Unable to process response: {ex}")
 
     @database_sync_to_async
     def get_or_create_conversation(self, uuid):
