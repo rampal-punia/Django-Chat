@@ -1,14 +1,12 @@
 # apps/audio_interface/services.py
 
 import asyncio
-import librosa
 import speech_recognition as sr
-from gtts import gTTS
 import tempfile
-import soundfile as sf
+from ultralytics import YOLOWorld
 
 
-class VoiceModalHandler:
+class ImageModalHandler:
     def __init__(self):
         self.recognizer = sr.Recognizer()
 

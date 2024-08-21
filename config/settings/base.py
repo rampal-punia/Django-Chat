@@ -3,9 +3,6 @@
 from pathlib import Path
 from decouple import config
 import sys
-import json
-
-from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -16,21 +13,8 @@ sys.path.append(str(BASE_DIR / "apps"))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/{{ docs_version }}/howto/deployment/checklist/
 
-with open(BASE_DIR / "config/settings/secrets.json", "r") as f:
-    secrets = json.loads(f.read())
-
-
-def get_secret(setting):
-    """Get the secret variable or return explicit exception."""
-    try:
-        return secrets[setting]
-    except KeyError:
-        error_msg = f"Set the {setting} secret variable"
-        raise ImproperlyConfigured(error_msg)
-
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = get_secret("DJANGO_SECRET_KEY")
+SECRET_KEY = config("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

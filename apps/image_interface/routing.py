@@ -5,5 +5,5 @@ from . import consumers
 
 websocket_urlpatterns = [
     re_path(
-        r'ws/chat/(?P<conversation_id>[^/]+)?/$', consumers.ChatConsumer.as_asgi()),
+        r'ws/image_chat/(?P<conversation_id>[^/]+)?/$', consumers.ImageChatConsumer.as_asgi()),
 ]

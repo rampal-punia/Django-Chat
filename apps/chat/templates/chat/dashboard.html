@@ -18,6 +18,7 @@
                     <h5 class="card-title">Engage in Thought-Provoking Chats</h5>
                     <p class="card-text">Experience the future of conversation with our AI-powered chatbot. Ask questions, seek advice, or just chat about anything!</p>
                     <a href="{% url "chat:new_conversation_url" %}" class="btn btn-outline-primary">Start Chatting</a>
+                    <a href="{% url "chat:conversation_list_url" %}" class="btn btn-outline-primary">My Chats</a>
                 </div>
             </div>
         </div>
@@ -30,6 +31,7 @@
                     <h5 class="card-title">Have a Voice Conversation</h5>
                     <p class="card-text">Break free from typing! Engage in natural, voice-based interactions with our AI. It's like talking to a knowledgeable friend.</p>
                     <a href="{% url "audio_interface:new_audio_url" %}" class="btn btn-outline-primary">Start Speaking</a>
+                    <a href="#" class="btn btn-outline-primary">My Audio Chats</a>
                 </div>
             </div>
         </div>
@@ -42,6 +44,7 @@
                     <h5 class="card-title">Unlock Document Intelligence</h5>
                     <p class="card-text">Upload any document and watch our AI summarize, analyze, and answer questions about its content. Your personal document expert awaits!</p>
                     <a href="{% url "audio_interface:new_audio_url" %}" class="btn btn-outline-primary">Analyze Documents</a>
+                    <a href="#" class="btn btn-outline-primary">My Document Chats</a>
                 </div>
             </div>
         </div>
@@ -54,6 +57,7 @@
                     <h5 class="card-title">See Through AI's Eyes</h5>
                     <p class="card-text">Upload an image and let our AI describe it in detail. Discover hidden aspects and gain new perspectives on visual content.</p>
                     <a href="{% url "audio_interface:new_audio_url" %}" class="btn btn-outline-primary">Explore Images</a>
+                    <a href="#" class="btn btn-outline-primary">My Image Chats</a>
                 </div>
             </div>
         </div>
