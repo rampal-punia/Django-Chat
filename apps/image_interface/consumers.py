@@ -3,10 +3,9 @@ import base64
 from channels.generic.websocket import AsyncWebsocketConsumer
 from langchain_core.messages import HumanMessage, AIMessage
 from channels.db import database_sync_to_async
-from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 
-from chat.models import Conversation, Message
+from chat.models import Conversation, Message, ChatMessage
 from chat import configure_llm
 from .models import ImageMessage
 from .services import ImageModalHandler
@@ -38,79 +37,39 @@ class ImageChatConsumer(AsyncWebsocketConsumer):
 
         conversation = await self.get_or_create_conversation(conversation_id)
 
-        if message_type == 'IM':
-            await self.handle_image_message(conversation, message_content)
-        elif message_type == 'TE':
-            await self.handle_text_message(conversation, message_content)
+        await self.handle_image_message(conversation, message_content)
 
     async def handle_image_message(self, conversation, image_data):
-        try:
-            image_handler = ImageModalHandler()
+        image_handler = ImageModalHandler()
 
-            # Decode base64 image data
-            image_content = base64.b64decode(image_data)
+        # Decode base64 image data
+        img_content = base64.b64decode(image_data)
 
-            # Process image
-            processed_image, image_description = await image_handler.process_image(image_content)
+        # Process image
+        processed_image, image_description = await image_handler.process_image(img_content)
 
-            # Save user's image message
-            user_message = await self.save_message(conversation, 'IM', is_from_user=True)
-            img_message = await self.save_image_message(user_message, processed_image, image_description)
+        # Save user's image message
+        user_message = await self.save_message(conversation, 'IM', is_from_user=True)
+        img_message = await self.save_image_message(user_message, processed_image, image_description)
 
-            # Send image description(Initial from the image descriptor model) to the client
-            await self.send(text_data=json.dumps({
-                'type': 'image_description',
-                'message': image_description,
-                'id': str(user_message.id)
-            }))
-
-            # Generate detailed AI response
-            ai_response = await self.generate_ai_response(conversation, image_description)
-
-            # Save AI's text message
-            ai_message = await self.save_message(conversation, 'TE', is_from_user=False)
-            await self.save_chat_message(ai_message, ai_response)
-            print("*"*40)
-            print(ai_response)
-            print("*"*40)
-            # Send AI response to the client
-            await self.send(text_data=json.dumps({
-                'type': 'ai_response',
-                'message': ai_response,
-                'id': str(ai_message.id)
-            }))
-        except Exception as ex:
-            print(f"Error while generating ai detailed response: {ex}")
-        except:
-            raise ValidationError("Unable to process ai response")
-
-    async def handle_text_message(self, conversation, message_content):
-        # Save user's text message
-        user_message = await self.save_message(conversation, 'TE', is_from_user=True)
-        await self.save_chat_message(user_message, message_content)
-
-        # Generate AI response
-        ai_response = await self.generate_ai_response(conversation, message_content)
-
-        # Save AI's text message
-        ai_message = await self.save_message(conversation, 'TE', is_from_user=False)
-        await self.save_chat_message(ai_message, ai_response)
-
-        # Send AI response to the client
+        # Send image description(Initial from the image descriptor model) to the client
         await self.send(text_data=json.dumps({
-            'type': 'ai_response',
-            'message': ai_response,
-            'id': str(ai_message.id)
+            'type': 'image_description',
+            'message': image_description,
+            'id': str(user_message.id)
         }))
 
-    async def generate_ai_response(self, conversation, input_text):
-        history = await get_conversation_history(conversation.id)
-        history_str = '\n'.join(
-            [f"{'Human' if isinstance(msg, HumanMessage) else 'AI'}:{msg.content}" for msg in history]
-        )
+        # Generate detailed AI response
+        ai_response = await self.generate_ai_response(image_description)
+        print("AI Response:", ai_response)
 
+        # Save AI's text message
+        ai_message = await self.save_message(conversation, 'IM', is_from_user=False, in_reply_to=user_message)
+        await self.save_chat_message(ai_message, ai_response)
+
+    async def generate_ai_response(self, input_text):
         input_with_history = {
-            'history': history_str,
+            'history': 'User is uploading the image and want you to describe it in 100 words based on the description provided.',
             'input': input_text
         }
 
@@ -154,7 +113,10 @@ class ImageChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def save_chat_message(self, message, content):
-        return message.image_content.create(description=content)
+        return ChatMessage.objects.create(
+            message=message,
+            content=content,
+        )
 
 
 @database_sync_to_async
@@ -162,7 +124,9 @@ def get_conversation_history(conversation_id, limit=8):
     conversation = Conversation.objects.get(id=conversation_id)
     messages = conversation.messages.order_by('-created')[:limit]
     return [
-        HumanMessage(content=msg.image_content.description) if msg.is_from_user else AIMessage(
-            content=msg.image_content.description)
+        HumanMessage(content=msg.image_content.description if msg.content_type ==
+                     'IM' else msg.chat_content.content)
+        if msg.is_from_user
+        else AIMessage(content=msg.chat_content.content)
         for msg in reversed(messages)
     ]
