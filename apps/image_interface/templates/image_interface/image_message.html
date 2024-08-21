@@ -19,10 +19,10 @@
                 <div id="qa-pair-{{ forloop.counter }}" class="qa-pair">
                     {% if message.is_from_user %}
                         <div class="question-area d-flex justify-content-end">
-                            {% if message.content_type == 'AU' %}
-                                <div class="audio-message">
-                                    <audio controls src="{{ message.audio_content.audio_file.url }}"></audio>
-                                    <span>{{ message.audio_content.transcript }}</span>
+                            {% if message.content_type == 'IM' %}
+                                <div class="image-message">
+                                    <img src="{{ message.image_content.image.url }}" alt="User uploaded image" class="image-preview">
+                                    <p>{{ message.image_content.description }}</p>
                                 </div>
                             {% else %}
                                 <p>{{ message.chat_content.content }}</p>
@@ -33,14 +33,7 @@
                             <div class="card-body">
                                 <div class="answer-area">
                                     <div class="message-content">
-                                        {% if message.content_type == 'AU' %}
-                                            <div class="audio-message">
-                                                <audio controls src="{{ message.audio_content.audio_file.url }}"></audio>
-                                                <span>{{ message.audio_content.transcript }}</span>
-                                            </div>
-                                        {% else %}
-                                            {{ message.chat_content.content|markdown_to_html|safe }}
-                                        {% endif %}
+                                        {{ message.chat_content.content|markdown_to_html|safe }}
                                     </div>
                                 </div>
                             </div>
@@ -52,34 +45,33 @@
     </div>
 
     <div class="input-group mb-1 fixed-bottom-input bg-light">
-        <div class="audio-controls">
-            <button id="startRecording" class="btn btn-primary">Start Recording</button>
-            <button id="stopRecording" class="btn btn-danger" disabled>Stop Recording</button>
+        <div class="image-upload">
+            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            <button id="uploadImage" class="btn btn-primary">Upload Image</button>
         </div>
         <input type="text" id="messageInput" class="form-control" placeholder="Type your message...">
         <button id="sendMessage" class="btn btn-primary">Send</button>
     </div>
+    <img id="uploadedImage" alt="Uploaded image preview">
 </div>
 {% endblock content %}
 
 {% block on_page_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/RecordRTC/5.6.2/RecordRTC.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-    let recorder;
-    const startRecordingButton = document.getElementById('startRecording');
-    const stopRecordingButton = document.getElementById('stopRecording');
+    const uploadImageButton = document.getElementById('uploadImage');
+    const imageInput = document.getElementById('imageInput');
     const messageInput = document.getElementById('messageInput');
     const sendMessageButton = document.getElementById('sendMessage');
     const qaContainer = document.getElementById('qa-container');
     const conversationTitle = document.getElementById('conversation-title');
-
+    const uploadedImage = document.getElementById('uploadedImage');
     let chatSocket;
 
     function connectWebSocket() {
         const conversationId = '{{ conversation.id }}';
-        const wsScheme = window.location.protocol === 'http:' ? 'ws' : 'ws';
-        const wsPath = `${wsScheme}://${window.location.host}/ws/audio_chat/${conversationId}/`;
+        const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const wsPath = `${wsScheme}://${window.location.host}/ws/image_chat/${conversationId}/`;
         
         chatSocket = new WebSocket(wsPath);
 
@@ -102,7 +94,7 @@
             console.log(data.message);
         } else if (data.type === 'title_update') {
             conversationTitle.textContent = data.title;
-        } else if (data.type === 'transcription' || data.type === 'ai_response') {
+        } else if (data.type === 'image_description' || data.type === 'ai_response') {
             updateOrCreateMessage(data);
         }
     }
@@ -116,7 +108,7 @@
             qaContainer.appendChild(messageElement);
         }
 
-        if (data.type === 'transcription') {
+        if (data.type === 'image_description') {
             messageElement.innerHTML = `
                 <div class="card-body">
                     <div class="message-content">${data.message}</div>
@@ -125,10 +117,7 @@
         } else if (data.type === 'ai_response') {
             messageElement.innerHTML = `
                 <div class="card-body">
-                    <div class="audio-message">
-                        <audio controls src="${data.audio_url}"></audio>
-                        <div class="message-content">${marked.parse(data.message)}</div>
-                    </div>
+                    <div class="message-content">${marked(data.message)}</div>
                 </div>
             `;
         }
@@ -136,65 +125,61 @@
         qaContainer.scrollTop = qaContainer.scrollHeight;
     }
 
-    startRecordingButton.onclick = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            recorder = new RecordRTC(stream, {
-                type: 'audio',
-                mimeType: 'audio/webm',
-                recorderType: RecordRTC.StereoAudioRecorder,
-                numberOfAudioChannels: 1,
-                desiredSampRate: 16000
-            });
-            recorder.startRecording();
+    uploadImageButton.addEventListener('click', function() {
+        imageInput.click();
+    });
 
-            startRecordingButton.disabled = true;
-            stopRecordingButton.disabled = false;
-        } catch (error) {
-            console.error('Error starting recording:', error);
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedImage.src = e.target.result;
+                uploadedImage.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
         }
-    };
+    });
 
-    stopRecordingButton.onclick = () => {
-        recorder.stopRecording(() => {
-            const blob = recorder.getBlob();
-            sendAudioMessage(blob);
-
-            startRecordingButton.disabled = false;
-            stopRecordingButton.disabled = true;
-        });
-    };
-
-    function sendAudioMessage(audioBlob) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const base64Audio = e.target.result.split(',')[1];
-            chatSocket.send(JSON.stringify({
-                'type': 'AU',
-                'message': base64Audio,
-                'uuid': '{{ conversation.id }}'
-            }));
-        };
-        reader.readAsDataURL(audioBlob);
-    }
-
-    sendMessageButton.onclick = function(e) {
-        const message = messageInput.value.trim();
-        if (message) {
-            chatSocket.send(JSON.stringify({
-                'type': 'TE',
-                'message': message,
-                'uuid': '{{ conversation.id }}'
-            }));
-            messageInput.value = '';
-        }
-    };
-
-    messageInput.onkeyup = function(e) {
+    sendMessageButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
-            sendMessageButton.click();
+            sendMessage();
         }
-    };
+    });
+
+    function sendMessage() {
+        const message = messageInput.value.trim();
+        const imageFile = imageInput.files[0];
+
+        if (message || imageFile) {
+            if (imageFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Image = e.target.result.split(',')[1];
+                    chatSocket.send(JSON.stringify({
+                        'type': 'IM',
+                        'message': base64Image,
+                        'uuid': '{{ conversation.id }}'
+                    }));
+                };
+                reader.readAsDataURL(imageFile);
+                
+                // Clear the file input
+                imageInput.value = '';
+                uploadedImage.style.display = 'none';
+            }
+
+            if (message) {
+                chatSocket.send(JSON.stringify({
+                    'type': 'TE',
+                    'message': message,
+                    'uuid': '{{ conversation.id }}'
+                }));
+                messageInput.value = '';
+            }
+        }
+    }
 
     // Connect WebSocket when the page loads
     connectWebSocket();

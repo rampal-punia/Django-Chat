@@ -4,6 +4,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from langchain_core.messages import HumanMessage, AIMessage
 from channels.db import database_sync_to_async
 from django.core.files.base import ContentFile
+from django.core.exceptions import ValidationError
 
 from chat.models import Conversation, Message
 from chat import configure_llm
@@ -37,40 +38,68 @@ class ImageChatConsumer(AsyncWebsocketConsumer):
 
         conversation = await self.get_or_create_conversation(conversation_id)
 
-        await self.handle_image_message(conversation, message_content)
+        if message_type == 'IM':
+            await self.handle_image_message(conversation, message_content)
+        elif message_type == 'TE':
+            await self.handle_text_message(conversation, message_content)
 
     async def handle_image_message(self, conversation, image_data):
-        voice_handler = VoiceModalHandler()
+        try:
+            image_handler = ImageModalHandler()
 
-        # Decode base64 audio data
-        image_content = base64.b64decode(image_data)
+            # Decode base64 image data
+            image_content = base64.b64decode(image_data)
 
-        # Save user's image message
-        user_message = await self.save_message(conversation, 'IM', is_from_user=True)
-        await self.save_image_message(user_message, audio_content)
+            # Process image
+            processed_image, image_description = await image_handler.process_image(image_content)
 
-        # Process user audio (speech-to-text)
-        text_content = await voice_handler.process_audio(user_message)
+            # Save user's image message
+            user_message = await self.save_message(conversation, 'IM', is_from_user=True)
+            img_message = await self.save_image_message(user_message, processed_image, image_description)
 
-        # Send transcription to the client
-        await self.send(text_data=json.dumps({
-            'type': 'transcription',
-            'message': text_content,
-            'id': str(user_message.id)
-        }))
+            # Send image description(Initial from the image descriptor model) to the client
+            await self.send(text_data=json.dumps({
+                'type': 'image_description',
+                'message': image_description,
+                'id': str(user_message.id)
+            }))
+
+            # Generate detailed AI response
+            ai_response = await self.generate_ai_response(conversation, image_description)
+
+            # Save AI's text message
+            ai_message = await self.save_message(conversation, 'TE', is_from_user=False)
+            await self.save_chat_message(ai_message, ai_response)
+            print("*"*40)
+            print(ai_response)
+            print("*"*40)
+            # Send AI response to the client
+            await self.send(text_data=json.dumps({
+                'type': 'ai_response',
+                'message': ai_response,
+                'id': str(ai_message.id)
+            }))
+        except Exception as ex:
+            print(f"Error while generating ai detailed response: {ex}")
+        except:
+            raise ValidationError("Unable to process ai response")
+
+    async def handle_text_message(self, conversation, message_content):
+        # Save user's text message
+        user_message = await self.save_message(conversation, 'TE', is_from_user=True)
+        await self.save_chat_message(user_message, message_content)
 
         # Generate AI response
-        ai_response = await self.generate_ai_response(conversation, text_content)
+        ai_response = await self.generate_ai_response(conversation, message_content)
 
-        # Save AI's audio message
-        ai_message = await self.save_message(conversation, 'AU', is_from_user=False)
-        await self.save_image_message(ai_message, ai_response)
+        # Save AI's text message
+        ai_message = await self.save_message(conversation, 'TE', is_from_user=False)
+        await self.save_chat_message(ai_message, ai_response)
 
         # Send AI response to the client
         await self.send(text_data=json.dumps({
             'type': 'ai_response',
             'message': ai_response,
-            'audio_url': ai_message.audio_content.audio_file.url,
             'id': str(ai_message.id)
         }))
 
@@ -103,32 +132,29 @@ class ImageChatConsumer(AsyncWebsocketConsumer):
         return conversation
 
     @database_sync_to_async
-    def save_message(self, conversation, content_type, is_from_user=True):
+    def save_message(self, conversation, content_type, is_from_user=True, in_reply_to=None):
         return Message.objects.create(
             conversation=conversation,
             content_type=content_type,
-            is_from_user=is_from_user
+            is_from_user=is_from_user,
+            in_reply_to=in_reply_to
         )
 
     @database_sync_to_async
-    def save_image_message(self, message, image_content, width, height, description=''):
-        image = ContentFile(image_content, name=f"image_{message.id}.png")
-        return ImageMessage.objects.create(
+    def save_image_message(self, message, image_array, description):
+        image_message = ImageMessage.objects.create(
             message=message,
-            image=image,
-            width=width,
-            height=height,
-            description=description,
+            width=image_array.shape[1],
+            height=image_array.shape[0],
+            description=description
         )
+        ImageModalHandler.update_image_message(
+            image_message, image_array, description)
+        return image_message
 
     @database_sync_to_async
     def save_chat_message(self, message, content):
-        return message.chat_content.create(content=content)
-
-    @database_sync_to_async
-    def update_image_message(self, image_message, description):
-        image_message.description = description
-        image_message.save()
+        return message.image_content.create(description=content)
 
 
 @database_sync_to_async

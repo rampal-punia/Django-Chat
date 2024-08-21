@@ -24,6 +24,8 @@ urlpatterns = [
     path('users/', include('users.urls', namespace='users')),
     path('audio_interface/', include('audio_interface.urls',
          namespace='audio_interface')),
+    path('image_interface/', include('image_interface.urls',
+         namespace='image_interface')),
 ]
 
 if settings.DEBUG:

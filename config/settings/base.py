@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'users',
     'chat',
     'audio_interface',
+    'image_interface',
 
 
     #### Third Party Apps #####

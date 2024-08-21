@@ -1,72 +1,68 @@
-# apps/audio_interface/services.py
-
 import asyncio
-import speech_recognition as sr
-import tempfile
-from ultralytics import YOLOWorld
+import requests
+import io
+
+import cv2
+import numpy as np
+from PIL import Image
+from django.conf import settings
+from django.core.files.base import ContentFile
+
+
+API_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large"
+headers = {"Authorization": f"Bearer {settings.HUGGINGFACE_API_TOKEN}"}
 
 
 class ImageModalHandler:
     def __init__(self):
-        self.recognizer = sr.Recognizer()
+        pass
 
-    async def process_audio(self, message):
-        audio_file = message.audio_content.audio_file.path
-        text = await self.speech_to_text(audio_file)
-        duration = await self.get_audio_duration(audio_file)
-        await self.update_audio_message(message.audio_content, text, duration)
-        return text
+    async def process_image(self, image_content):
+        # Convert image content to numpy array
+        img_arr = np.frombuffer(image_content, np.int8)
+        img = cv2.imdecode(img_arr, cv2.IMREAD_COLOR)
 
-    async def speech_to_text(self, audio_file):
-        def recognize():
-            with sr.AudioFile(audio_file) as source:
-                audio = self.recognizer.record(source)
-            try:
-                return self.recognizer.recognize_google(audio)
-            except sr.UnknownValueError:
-                return "Speech recognition could not understand the audio"
-            except sr.RequestError:
-                return "Could not request results from the speech recognition service"
+        # Resize image
+        img_resized = cv2.resize(img, (720, int(720*9/16)))
 
-        return await asyncio.to_thread(recognize)
+        # Convert back to bytes
+        is_success, im_buf_arr = cv2.imencode(".png", img_resized)
+        byte_im = im_buf_arr.tobytes()
 
-    async def text_to_speech(self, text):
-        def generate_audio():
-            tts = gTTS(text=text, lang='en')
-            temp_file = tempfile.NamedTemporaryFile(
-                delete=False, suffix=".mp3")
-            tts.save(temp_file.name)
-            return temp_file.name
+        # Get image description
+        image_description = await self.query_image_model(byte_im)
 
-        audio_file = await asyncio.to_thread(generate_audio)
-        with open(audio_file, 'rb') as f:
-            audio_content = f.read()
-        return audio_content
+        return img_resized, image_description
 
-    async def get_audio_duration(self, audio_file):
-        def get_duration():
-            y, sr = librosa.load(audio_file)
-            return librosa.get_duration(y=y, sr=sr)
-
-        return await asyncio.to_thread(get_duration)
+    async def query_image_model(self, image_bytes):
+        response = await asyncio.to_thread(
+            requests.post,
+            API_URL,
+            headers=headers,
+            data=image_bytes
+        )
+        return response.json()[0]['generated_text']
 
     @staticmethod
-    async def update_audio_message(audio_message, transcript, duration):
-        audio_message.transcript = transcript
-        audio_message.duration = duration
-        await asyncio.to_thread(audio_message.save)
+    def update_image_message(image_message, image_array, image_description):
+        print(
+            type(image_message),
+            type(image_array),
+            type(image_description),
+        )
+        # Convert numpy array to PIL Image
+        img = Image.fromarray(cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB))
 
-    @staticmethod
-    async def convert_audio_format(input_file, output_file, target_sr=22050):
-        def convert():
-            # Load the audio file
-            y, sr = librosa.load(input_file, sr=None)
+        # Save to BytesIO object
+        img_io = io.BytesIO()
+        img.save(img_io, format='PNG')
 
-            # Resample if necessary
-            if sr != target_sr:
-                y = librosa.resample(y, orig_sr=sr, target_sr=target_sr)
+        # Create a Django ContentFile
+        image_content = ContentFile(
+            img_io.getvalue(), name=f"image_{image_message.id}.png")
 
-            # Write the audio file
-            sf.write(output_file, y, target_sr)
-
-        await asyncio.to_thread(convert)
+        # Update ImageMessage
+        image_message.image = image_content
+        image_message.width, image_message.height = img.size
+        image_message.description = image_description
+        image_message.save()

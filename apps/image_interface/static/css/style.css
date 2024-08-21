@@ -1,0 +1,12 @@
+.image-preview {
+    max-width: 100%;
+    max-height: 300px;
+    margin-bottom: 10px;
+}
+
+#uploadedImage {
+    max-width: 100%;
+    max-height: 300px;
+    display: none;
+    margin-bottom: 10px;
+}
