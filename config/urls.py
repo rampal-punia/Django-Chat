@@ -26,6 +26,8 @@ urlpatterns = [
          namespace='audio_interface')),
     path('image_interface/', include('image_interface.urls',
          namespace='image_interface')),
+    path('document_interface/', include('document_interface.urls',
+         namespace='document_interface')),
 ]
 
 if settings.DEBUG:

@@ -8,6 +8,7 @@ from channels.auth import AuthMiddlewareStack
 import chat.routing
 import audio_interface.routing
 import image_interface.routing
+import document_interface.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
 
@@ -18,8 +19,8 @@ application = ProtocolTypeRouter({
             URLRouter(
                 chat.routing.websocket_urlpatterns +
                 audio_interface.routing.websocket_urlpatterns +
-                image_interface.routing.websocket_urlpatterns
-
+                image_interface.routing.websocket_urlpatterns +
+                document_interface.routing.websocket_urlpatterns
             )
         )
     ),

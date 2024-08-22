@@ -1,20 +1,36 @@
-from django.core.exceptions import ValidationError
 from django.db import models
-from pypdf import PdfReader
+from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import UploadedFile
 from pgvector.django import VectorField
+import magic
 
-DOCUMENT_EXTENSIONS = ('.pdf', )
+
+def validate_pdf(document):
+    if isinstance(document, UploadedFile):
+        # Check the MIME type of the file
+        mime = magic.Magic(mime=True)
+        file_type = mime.from_buffer(document.read(1024))
+        if file_type != 'application/pdf':
+            raise ValidationError("The uploaded file is not a valid PDF.")
+        # Reset the file pointer
+        document.seek(0)
+    else:
+        raise ValidationError("Invalid file upload.")
 
 
-def validate_document(document):
-    if not document.name.lower().endswith(DOCUMENT_EXTENSIONS):
-        raise ValidationError(
-            "Unsupported file extension. Please upload a valid document file.")
-    try:
-        doc = PdfReader.read(document)
-    except:
-        raise ValidationError(
-            "Invalid document file. Please upload a valid document.")
+class DocumentChunk(models.Model):
+    document = models.ForeignKey(
+        'DocumentMessage',
+        on_delete=models.CASCADE,
+        related_name='chunks'
+    )
+    content = models.TextField()
+    # Adjust dimensions based on your embedding model
+    embedding = VectorField(dimensions=768)
+    metadata = models.JSONField(default=dict)
+
+    def __str__(self):
+        return f"Chunk {self.id} of Document {self.document.id}"
 
 
 class DocumentMessage(models.Model):
@@ -23,9 +39,35 @@ class DocumentMessage(models.Model):
         on_delete=models.CASCADE,
         related_name='document_content'
     )
-    document = models.FileField(upload_to='document_messages/')
+    document = models.FileField(
+        upload_to='document_messages/', validators=[validate_pdf])
     num_pages = models.IntegerField()
-    file_type = models.CharField(max_length=10)  # e.g., 'pdf', 'docx'
+    num_chunks = models.IntegerField()
+    file_type = models.CharField(max_length=255)  # Store the actual MIME type
+    # Store the full processed text content
+    processed_content = models.TextField(blank=True)
+    summary = models.TextField(blank=True)  # Store the generated summary
 
     def __str__(self):
         return f"Document: {self.id}"
+
+    def save(self, *args, **kwargs):
+        if not self.pk:  # Only on creation
+            mime = magic.Magic(mime=True)
+            self.file_type = mime.from_buffer(self.document.read(1024))
+            self.document.seek(0)  # Reset file pointer
+        super().save(*args, **kwargs)
+
+
+class DocumentMetadata(models.Model):
+    document = models.OneToOneField(
+        DocumentMessage, on_delete=models.CASCADE, related_name='metadata')
+    title = models.CharField(max_length=255, blank=True)
+    author = models.CharField(max_length=255, blank=True)
+    creation_date = models.DateTimeField(null=True, blank=True)
+    last_modified_date = models.DateTimeField(null=True, blank=True)
+    page_count = models.IntegerField(null=True)
+    word_count = models.IntegerField(null=True)
+
+    def __str__(self):
+        return f"Metadata for Document {self.document.id}"

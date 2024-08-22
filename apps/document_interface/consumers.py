@@ -1,11 +1,11 @@
 import json
 import base64
 from channels.generic.websocket import AsyncWebsocketConsumer
-from langchain_core.messages import HumanMessage, AIMessage
 from channels.db import database_sync_to_async
-from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
+from django.core.exceptions import ObjectDoesNotExist
 
-from chat.models import Conversation, Message, ChatMessage
+from chat.models import Conversation, Message
 from chat import configure_llm
 from .models import DocumentMessage
 from .services import DocumentModalHandler
@@ -37,40 +37,66 @@ class DocumentChatConsumer(AsyncWebsocketConsumer):
 
         conversation = await self.get_or_create_conversation(conversation_id)
 
-        await self.handle_document_message(conversation, message_content)
+        if message_type == 'DO':
+            await self.handle_document_message(conversation, message_content)
+        elif message_type == 'TE':
+            await self.handle_text_message(conversation, message_content)
 
     async def handle_document_message(self, conversation, document_data):
         document_handler = DocumentModalHandler()
 
         # Process document
-        processed_document, document_description = await document_handler.process_document(document_data)
+        num_chunks, summary, chunks, embeddings, metadata = await document_handler.process_document(document_data)
 
         # Save user's document message
-        user_message = await self.save_message(conversation, 'IM', is_from_user=True)
-        img_message = await self.save_document_message(user_message, processed_document, document_description)
+        user_message = await self.save_message(conversation, 'DO', is_from_user=True)
+        await document_handler.save_document_message(user_message, document_data, num_chunks, summary, chunks, embeddings, metadata)
 
-        # Send document description(Initial from the document descriptor model) to the client
+        # Send document summary to the client
         await self.send(text_data=json.dumps({
-            'type': 'document_description',
-            'message': document_description,
-            'id': str(user_message.id)
+            'type': 'document_summary',
+            'message': summary,
         }))
 
-        # Generate detailed AI response
-        ai_response = await self.generate_ai_response(document_description)
-        print("AI Response:", ai_response)
+    async def handle_text_message(self, conversation, message_content):
+        document_handler = DocumentModalHandler()
 
-        # Save AI's text message
-        ai_message = await self.save_message(conversation, 'IM', is_from_user=False, in_reply_to=user_message)
-        await self.save_chat_message(ai_message, ai_response)
+        try:
+            # Get the latest document message for this conversation
+            document_message = await self.get_latest_document_message(conversation)
 
-    async def generate_ai_response(self, input_text):
-        input_with_history = {
-            'history': 'User is uploading the document and want you to describe it in 100 words based on the description provided.',
-            'input': input_text
+            # Query the document
+            context = await document_handler.query_document(message_content, document_message.id)
+
+            # Generate AI response
+            ai_response = await self.generate_ai_response(context, message_content)
+
+            # Save user's text message
+            user_message = await self.save_message(conversation, 'TE', is_from_user=True)
+            await self.save_chat_message(user_message, message_content)
+
+            # Save AI's text message
+            ai_message = await self.save_message(conversation, 'TE', is_from_user=False)
+            await self.save_chat_message(ai_message, ai_response)
+
+            # Send AI response to the client
+            await self.send(text_data=json.dumps({
+                'type': 'ai_response',
+                'message': ai_response,
+            }))
+        except ObjectDoesNotExist:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': "No document has been uploaded for this conversation. Please upload a document first.",
+            }))
+
+    async def generate_ai_response(self, context, query):
+        input_with_context = {
+            'history': context,
+            'input': query
         }
 
-        response = await configure_llm.chain.ainvoke(input_with_history)
+        response = await configure_llm.chain.ainvoke(input_with_context)
         return response
 
     @database_sync_to_async
@@ -88,42 +114,17 @@ class DocumentChatConsumer(AsyncWebsocketConsumer):
         return conversation
 
     @database_sync_to_async
-    def save_message(self, conversation, content_type, is_from_user=True, in_reply_to=None):
+    def save_message(self, conversation, content_type, is_from_user=True):
         return Message.objects.create(
             conversation=conversation,
             content_type=content_type,
-            is_from_user=is_from_user,
-            in_reply_to=in_reply_to
+            is_from_user=is_from_user
         )
-
-    @database_sync_to_async
-    def save_document_message(self, message, document_array, description):
-        document_message = DocumentMessage.objects.create(
-            message=message,
-            width=document_array.shape[1],
-            height=document_array.shape[0],
-            description=description
-        )
-        DocumentModalHandler.update_document_message(
-            document_message, document_array, description)
-        return document_message
 
     @database_sync_to_async
     def save_chat_message(self, message, content):
-        return ChatMessage.objects.create(
-            message=message,
-            content=content,
-        )
+        return message.chat_content.create(content=content)
 
-
-@database_sync_to_async
-def get_conversation_history(conversation_id, limit=8):
-    conversation = Conversation.objects.get(id=conversation_id)
-    messages = conversation.messages.order_by('-created')[:limit]
-    return [
-        HumanMessage(content=msg.document_content.description if msg.content_type ==
-                     'IM' else msg.chat_content.content)
-        if msg.is_from_user
-        else AIMessage(content=msg.chat_content.content)
-        for msg in reversed(messages)
-    ]
+    @database_sync_to_async
+    def get_latest_document_message(self, conversation):
+        return DocumentMessage.objects.filter(message__conversation=conversation).latest('message__created')
