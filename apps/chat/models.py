@@ -54,6 +54,7 @@ class Message(CreationModificationDateBase):
         IMAGE = 'IM', _('Image')
         AUDIO = 'AU', _('Audio')
         VIDEO = 'VI', _('Video')
+        DOCUMENT = 'DO', _('Document')
 
     conversation = models.ForeignKey(
         'chat.Conversation',

@@ -1,3 +1,9 @@
-from django.contrib import admin
+# apps/image_interface/admin.py
 
-# Register your models here.
+from django.contrib import admin
+from .models import DocumentMessage
+
+
+@admin.register(DocumentMessage)
+class DocumentMessageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'message')
