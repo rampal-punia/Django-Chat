@@ -25,8 +25,7 @@ class DocumentChunk(models.Model):
         related_name='chunks'
     )
     content = models.TextField()
-    # Adjust dimensions based on your embedding model
-    embedding = VectorField(dimensions=768)
+    embedding = VectorField(dimensions=384)
     metadata = models.JSONField(default=dict)
 
     def __str__(self):
@@ -43,10 +42,12 @@ class DocumentMessage(models.Model):
         upload_to='document_messages/', validators=[validate_pdf])
     num_pages = models.IntegerField()
     num_chunks = models.IntegerField()
-    file_type = models.CharField(max_length=255)  # Store the actual MIME type
+    # Store the actual MIME type
+    file_type = models.CharField(max_length=255)
     # Store the full processed text content
     processed_content = models.TextField(blank=True)
-    summary = models.TextField(blank=True)  # Store the generated summary
+    # Store the generated summary
+    summary = models.TextField(blank=True)
 
     def __str__(self):
         return f"Document: {self.id}"
@@ -64,7 +65,6 @@ class DocumentMetadata(models.Model):
         DocumentMessage, on_delete=models.CASCADE, related_name='metadata')
     title = models.CharField(max_length=255, blank=True)
     author = models.CharField(max_length=255, blank=True)
-    creation_date = models.DateTimeField(null=True, blank=True)
     last_modified_date = models.DateTimeField(null=True, blank=True)
     page_count = models.IntegerField(null=True)
     word_count = models.IntegerField(null=True)

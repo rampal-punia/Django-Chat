@@ -1,15 +1,24 @@
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader
+from datetime import datetime
 import asyncio
 import requests
 import io
 import base64
-from django.conf import settings
-from .models import DocumentMessage, DocumentChunk, DocumentMetadata
-from django.core.files.base import ContentFile
+import tempfile
+import os
+
 import pypdf
-from datetime import datetime
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import PyPDFLoader
+
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.conf import settings
+from django.db import transaction
+from asgiref.sync import sync_to_async
+from django.utils import timezone
+
+from .models import DocumentMessage, DocumentChunk, DocumentMetadata
 
 API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
 headers = {"Authorization": f"Bearer {settings.HUGGINGFACE_API_TOKEN}"}
@@ -22,36 +31,49 @@ class DocumentModalHandler:
         )
 
     async def process_document(self, document_content):
-        # Save the document content to a temporary file
-        temp_file = io.BytesIO(base64.b64decode(document_content))
+        # Decode the base64 content
+        pdf_content = base64.b64decode(document_content)
 
-        # Load the PDF
-        loader = PyPDFLoader(temp_file)
-        pages = loader.load()
+        # Create a temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf', mode='wb') as temp_file:
+            temp_file.write(pdf_content)
+            temp_file_path = temp_file.name
 
-        # Extract metadata
-        metadata = await self.extract_metadata(temp_file)
+        try:
+            # Load the PDF using the temporary file path
+            loader = PyPDFLoader(temp_file_path)
+            pages = loader.load()
+            print("*"*40)
+            print(pages)
+            print("*"*40)
 
-        # Split the document into chunks
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-            length_function=len,
-        )
-        chunks = text_splitter.split_documents(pages)
+            # Extract metadata
+            metadata = await self.extract_metadata(temp_file_path)
 
-        # Generate embeddings for chunks
-        embeddings = await asyncio.to_thread(self.embeddings.embed_documents, [chunk.page_content for chunk in chunks])
+            # Split the document into chunks
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000,
+                chunk_overlap=200,
+                length_function=len,
+            )
+            chunks = text_splitter.split_documents(pages)
 
-        # Generate summary
-        full_text = " ".join([chunk.page_content for chunk in chunks])
-        summary = await self.generate_summary_using_LLM(full_text[:4000])
+            # Generate embeddings for chunks
+            embeddings = await asyncio.to_thread(self.embeddings.embed_documents, [chunk.page_content for chunk in chunks])
 
-        return len(chunks), summary, chunks, embeddings, metadata
+            # Generate summary
+            full_text = " ".join([chunk.page_content for chunk in chunks])
+            summary = await self.generate_summary_using_LLM(full_text[:4000])
+
+            return len(chunks), summary, chunks, embeddings, metadata
+        finally:
+            # clean up the temporary file
+            os.unlink(temp_file_path)
 
     async def extract_metadata(self, file):
         pdf = pypdf.PdfReader(file)
         info = pdf.metadata
+        print(info)
         return {
             'title': info.get('/Title', ''),
             'author': info.get('/Author', ''),
@@ -71,16 +93,20 @@ class DocumentModalHandler:
         return response.json()[0]['summary_text']
 
     async def query_document(self, query, document_id):
+        @sync_to_async
+        def retrive_relevant_chunk(query_embedding):
+            chunks = DocumentChunk.objects.filter(document_id=document_id)
+            relevant_chunks = sorted(
+                chunks,
+                key=lambda x: self.cosine_similarity(
+                    query_embedding, x.embedding),
+                reverse=True
+            )[:3]
+            return relevant_chunks
+
         # Embed the query
         query_embedding = await asyncio.to_thread(self.embeddings.embed_query, query)
-
-        # Retrieve relevant chunks
-        chunks = DocumentChunk.objects.filter(document_id=document_id)
-        relevant_chunks = sorted(
-            chunks,
-            key=lambda x: self.cosine_similarity(query_embedding, x.embedding),
-            reverse=True
-        )[:3]
+        relevant_chunks = await retrive_relevant_chunk(query_embedding)
 
         context = " ".join([chunk.content for chunk in relevant_chunks])
         return context
@@ -91,36 +117,42 @@ class DocumentModalHandler:
 
     @staticmethod
     async def save_document_message(message, document_data, num_chunks, summary, chunks, embeddings, metadata):
-        document_content = ContentFile(base64.b64decode(
-            document_data), name=f"document_{message.id}.pdf")
-        document_message = DocumentMessage.objects.create(
-            message=message,
-            document=document_content,
-            num_pages=metadata['page_count'],
-            num_chunks=num_chunks,
-            processed_content=" ".join(
-                [chunk.page_content for chunk in chunks]),
-            summary=summary
-        )
-
-        # Save chunks and embeddings
-        for chunk, embedding in zip(chunks, embeddings):
-            DocumentChunk.objects.create(
-                document=document_message,
-                content=chunk.page_content,
-                embedding=embedding,
-                metadata=chunk.metadata
+        @sync_to_async
+        def create_document_message():
+            document_content = ContentFile(base64.b64decode(
+                document_data), name=f"document_{message.id}.pdf")
+            return DocumentMessage.objects.create(
+                message=message,
+                document=document_content,
+                num_pages=metadata['page_count'],
+                num_chunks=num_chunks,
+                processed_content=" ".join(
+                    [chunk.page_content for chunk in chunks]),
+                summary=summary
             )
 
-        # Save metadata
-        DocumentMetadata.objects.create(
-            document=document_message,
-            title=metadata['title'],
-            author=metadata['author'],
-            creation_date=datetime.strptime(
-                metadata['creation_date'], "D:%Y%m%d%H%M%S") if metadata['creation_date'] else None,
-            page_count=metadata['page_count'],
-            word_count=metadata['word_count']
-        )
+        @sync_to_async
+        def create_chunks_and_metadata(document_message):
+            with transaction.atomic():
+                # Save chunks and embeddings
+                for chunk, embedding in zip(chunks, embeddings):
+                    DocumentChunk.objects.create(
+                        document=document_message,
+                        content=chunk.page_content,
+                        embedding=embedding,
+                        metadata=chunk.metadata
+                    )
+
+                # Save metadata
+                DocumentMetadata.objects.create(
+                    document=document_message,
+                    title=metadata['title'],
+                    author=metadata['author'],
+                    page_count=metadata['page_count'],
+                    word_count=metadata['word_count']
+                )
+
+        document_message = await create_document_message()
+        await create_chunks_and_metadata(document_message)
 
         return document_message

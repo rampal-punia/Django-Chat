@@ -1,8 +1,6 @@
 import json
-import base64
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from django.core.files.base import ContentFile
 from django.core.exceptions import ObjectDoesNotExist
 
 from chat.models import Conversation, Message
@@ -43,25 +41,36 @@ class DocumentChatConsumer(AsyncWebsocketConsumer):
             await self.handle_text_message(conversation, message_content)
 
     async def handle_document_message(self, conversation, document_data):
-        document_handler = DocumentModalHandler()
+        try:
+            document_handler = DocumentModalHandler()
 
-        # Process document
-        num_chunks, summary, chunks, embeddings, metadata = await document_handler.process_document(document_data)
+            # Process document
+            num_chunks, summary, chunks, embeddings, metadata = await document_handler.process_document(document_data)
 
-        # Save user's document message
-        user_message = await self.save_message(conversation, 'DO', is_from_user=True)
-        await document_handler.save_document_message(user_message, document_data, num_chunks, summary, chunks, embeddings, metadata)
+            # Save user's document message
+            user_message = await self.save_message(conversation, 'DO', is_from_user=True)
+            await document_handler.save_document_message(user_message, document_data, num_chunks, summary, chunks, embeddings, metadata)
 
-        # Send document summary to the client
-        await self.send(text_data=json.dumps({
-            'type': 'document_summary',
-            'message': summary,
-        }))
+            # Send document summary to the client
+            await self.send(text_data=json.dumps({
+                'type': 'document_summary',
+                'message': summary,
+            }))
+
+            # Update conversation title
+            new_title = f"Document Chat: {metadata.get('title', 'Untitled')[:30]}"
+            await self.update_conversation_title(conversation, new_title)
+
+        except Exception as e:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': f"Error processing document: {str(e)}",
+            }))
 
     async def handle_text_message(self, conversation, message_content):
-        document_handler = DocumentModalHandler()
-
         try:
+            document_handler = DocumentModalHandler()
+
             # Get the latest document message for this conversation
             document_message = await self.get_latest_document_message(conversation)
 
@@ -84,19 +93,30 @@ class DocumentChatConsumer(AsyncWebsocketConsumer):
                 'type': 'ai_response',
                 'message': ai_response,
             }))
+
         except ObjectDoesNotExist:
             await self.send(text_data=json.dumps({
                 'type': 'error',
                 'message': "No document has been uploaded for this conversation. Please upload a document first.",
             }))
+        except Exception as e:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': f"Error processing your question: {str(e)}",
+            }))
 
     async def generate_ai_response(self, context, query):
-        input_with_context = {
-            'history': context,
-            'input': query
-        }
+        prompt = f"""You are an AI assistant helping to answer questions based on a given document. 
+        Use the following context to answer the user's question. If you cannot answer the question based on the context, 
+        say that you don't have enough information to answer accurately.
 
-        response = await configure_llm.chain.ainvoke(input_with_context)
+        Context: {context}
+
+        User Question: {query}
+
+        Answer:"""
+
+        response = await configure_llm.chain.ainvoke({"input": prompt})
         return response
 
     @database_sync_to_async
@@ -128,3 +148,9 @@ class DocumentChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_latest_document_message(self, conversation):
         return DocumentMessage.objects.filter(message__conversation=conversation).latest('message__created')
+
+    @database_sync_to_async
+    def update_conversation_title(self, conversation, new_title):
+        conversation.title = new_title
+        conversation.save()
+        return conversation
