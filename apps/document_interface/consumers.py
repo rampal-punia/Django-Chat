@@ -1,12 +1,38 @@
 import json
+from asgiref.sync import sync_to_async
+import aiohttp
+
+from langchain_core.messages import HumanMessage, AIMessage
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 
 from chat.models import Conversation, Message
-from chat import configure_llm
+from common import configure_llm
 from .models import DocumentMessage
 from .services import DocumentModalHandler
+
+
+API_URL = "https://api-inference.huggingface.co/models/czearing/article-title-generator"
+headers = {"Authorization": f"Bearer {settings.HUGGINGFACE_API_TOKEN}"}
+
+
+async def generate_title(conversation_content):
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+                API_URL,
+                headers=headers,
+                json={
+                    "inputs": conversation_content,
+                    "parameters": {"max_length": 50, "min_length": 10}
+                }) as response:
+            result = await response.json()
+            if isinstance(result, list) and len(result) > 0:
+                return result[0]['generated_text']
+            else:
+                return "Untitled Conversation"
 
 
 class DocumentChatConsumer(AsyncWebsocketConsumer):

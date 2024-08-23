@@ -11,6 +11,7 @@ register = template.Library()
 def markdown_to_html(value):
     # Remove the </s> token
     value = value.replace('</s>', '')
+    value = value.replace('AI:', '')
 
     # Normalize line endings and remove excessive blank lines
     value = re.sub(r'\r\n|\r', '\n', value)

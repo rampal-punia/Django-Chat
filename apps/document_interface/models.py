@@ -39,7 +39,9 @@ class DocumentMessage(models.Model):
         related_name='document_content'
     )
     document = models.FileField(
-        upload_to='document_messages/', validators=[validate_pdf])
+        upload_to='document_messages/',
+        validators=[validate_pdf]
+    )
     num_pages = models.IntegerField()
     num_chunks = models.IntegerField()
     # Store the actual MIME type

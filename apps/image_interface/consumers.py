@@ -6,7 +6,7 @@ from channels.db import database_sync_to_async
 from django.core.exceptions import ValidationError
 
 from chat.models import Conversation, Message, ChatMessage
-from chat import configure_llm
+from common import configure_llm
 from .models import ImageMessage
 from .services import ImageModalHandler
 

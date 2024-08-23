@@ -1,7 +1,5 @@
-from datetime import datetime
 import asyncio
 import requests
-import io
 import base64
 import tempfile
 import os
@@ -12,11 +10,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 
 from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 from django.conf import settings
 from django.db import transaction
 from asgiref.sync import sync_to_async
-from django.utils import timezone
 
 from .models import DocumentMessage, DocumentChunk, DocumentMetadata
 
@@ -43,9 +39,6 @@ class DocumentModalHandler:
             # Load the PDF using the temporary file path
             loader = PyPDFLoader(temp_file_path)
             pages = loader.load()
-            print("*"*40)
-            print(pages)
-            print("*"*40)
 
             # Extract metadata
             metadata = await self.extract_metadata(temp_file_path)
@@ -104,7 +97,7 @@ class DocumentModalHandler:
             )[:3]
             return relevant_chunks
 
-        # Embed the query
+        # Embed the query and retirve related chunks
         query_embedding = await asyncio.to_thread(self.embeddings.embed_query, query)
         relevant_chunks = await retrive_relevant_chunk(query_embedding)
 

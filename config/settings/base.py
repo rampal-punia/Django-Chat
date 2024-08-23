@@ -1,5 +1,3 @@
-# config/base.py
-
 from pathlib import Path
 from decouple import config
 import sys
@@ -7,8 +5,14 @@ import sys
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# make sure our apps directory is on the python path
-sys.path.append(str(BASE_DIR / "apps"))
+# Add the 'apps' directory to the Python path
+sys.path.insert(0, str(BASE_DIR / 'apps'))
+
+# # Build paths inside the project like this: BASE_DIR / 'subdir'.
+# BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# # make sure our apps directory is on the python path
+# sys.path.append(str(BASE_DIR / "apps"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/{{ docs_version }}/howto/deployment/checklist/
@@ -38,6 +42,7 @@ INSTALLED_APPS = [
     #### Project Apps ####
     'users',
     'chat',
+    'common',
     'audio_interface',
     'document_interface',
     'image_interface',

@@ -1,5 +1,3 @@
-# apps/audio_interface/consumers.py
-
 import json
 import base64
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -8,7 +6,7 @@ from channels.db import database_sync_to_async
 from django.core.files.base import ContentFile
 
 from chat.models import Conversation, Message
-from chat import configure_llm
+from common import configure_llm
 from .models import AudioMessage
 from .services import VoiceModalHandler
 
