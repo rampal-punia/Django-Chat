@@ -1,5 +1,3 @@
-# apps/chat/views.py
-
 import uuid
 
 from django.shortcuts import render, redirect

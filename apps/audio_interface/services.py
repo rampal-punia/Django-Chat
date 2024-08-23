@@ -1,5 +1,3 @@
-# apps/audio_interface/services.py
-
 import asyncio
 import librosa
 import speech_recognition as sr

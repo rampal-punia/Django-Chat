@@ -2,70 +2,71 @@
 
 ## About
 
-Django-Chat is an innovative, AI-powered chat application that combines the robustness of Django with cutting-edge language models. This project showcases the seamless integration of real-time communication and artificial intelligence, providing users with an intelligent conversational experience. 
+Django-Chat is an AI-powered chat application that combines the robustness of Django with cutting-edge language models. This project showcases the seamless integration of real-time communication and artificial intelligence, providing users with an intelligent conversational experience. It combines text, audio, image, and document processing capabilities, allowing users to engage with AI in multiple formats.
 
-Leveraging WebSockets for instant messaging and Hugging Face's state-of-the-art language models, Django-Chat offers responsive, context-aware interactions. The application features user authentication, conversation management, and automatic title generation, all wrapped in a clean, intuitive interface. 
+Leveraging WebSockets for instant messaging and Hugging Face's state-of-the-art language models, Django-Chat offers responsive, context-aware interactions. The application features user authentication, conversation management, and automatic title generation, all wrapped in a clean, intuitive interface. Django-Chat provides a solid foundation for your next-level web application.
 
-With its RESTful API and detailed documentation, Django-Chat is not just a functional chat platform but also a valuable learning resource for developers interested in combining Django, WebSockets, and AI technologies. Whether you're looking to deploy a smart chatbot or explore web development techniques, Django-Chat provides a solid foundation for your next-level web application.
-
-## Quick Overview
+## What We're Building
 
 |||
 |----|----|
-|<img src="static/imgs/home-page.png" >|<img src="static/imgs/dj-chat.png" >|
-|<img src="static/imgs/api_schema_swagger.png" >|<img src="static/imgs/api_schema_redoc.png" >|
-|<img src="static/imgs/profile.png" >|<img src="static/imgs/register.png" >|
+|<img src="static/imgs/home-page.png" alt="Home Page">|<img src="static/imgs/dj-chat.png" alt="Chat Interface">|
+|<img src="static/imgs/api_schema_swagger.png" alt="API Schema Swagger">|<img src="static/imgs/api_schema_redoc.png" alt="API Schema Redoc">|
+|<img src="static/imgs/profile.png" alt="User Profile">|<img src="static/imgs/register.png" alt="Registration Page">|
 |||
 
 ## Table of Contents
 - [Features](#features)
 - [Technologies Used](#technologies-used)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
 - [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
+- [Key Components](#key-components)
+- [How It Works](#how-it-works)
 - [API Endpoints](#api-endpoints)
 - [WebSocket Integration](#websocket-integration)
+- [Configuration](#configuration)
 - [Contributing](#contributing)
+- [Disclaimer](#disclaimer)
 - [License](#license)
 
 ## Features
 
-- Real-time chat functionality using WebSockets
-- Integration with AI language models for intelligent responses
-- User authentication and conversation management
-- Automatic conversation title generation
-- Markdown support for message rendering
-- RESTful API for conversations and messages
-- Responsive design for various devices
+- **Text Chat**: Real-time text-based conversations with an AI model.
+- **Audio Interface**: Voice-to-text and text-to-voice capabilities for audio conversations.
+- **Image Processing**: Upload and analyze images with AI-generated descriptions.
+- **Document Analysis**: Upload PDF documents and ask questions about their content.
+- **User Authentication**: Secure login and user profile management.
+- **Real-time Updates**: WebSocket integration for instant message delivery.
+- **Markdown Support**: Rich text formatting in chat messages.
+
 
 ## Technologies Used
 
-- Django 5.x: Web framework for backend development
-- Channels: For WebSocket support and asynchronous capabilities
-- Django Rest Framework: For building RESTful APIs
-- Langchain: For integrating with various language models
-- Hugging Face Transformers: For accessing pre-trained language models
-- Redis: As a channel layer for WebSocket communication
-- Daphne: ASGI server for running Django with WebSocket support
-- Bootstrap 5: For responsive frontend design
-- JavaScript: For frontend interactivity
+- **Backend**: Django, Django Channels
+- **Real-time Communication**: WebSockets, Django Channels with asynchronous capabilities
+- **Frontend**: HTML, CSS, JavaScript, Bootstrap 5
+- **AI/ML**: Langchain, HuggingFace Transformers
+- **Database**: PostgreSQL with pgvector extension
+- **Audio Processing**: SpeechRecognition, gTTS (Google Text-to-Speech)
+- **Image Processing**: OpenCV, Pillow
+- **Document Processing**: PyPDF2, Langchain document loaders
+- **External APIs**: HuggingFace Inference API
+- **Django Rest Framework**: For building RESTful APIs
+- **Redis**: As a channel layer for WebSocket communication
+- **Daphne**: ASGI server for running Django with WebSocket support
 
-## Project Structure
+## Getting Started
 
-The main components of the chat application include:
+### Prerequisites
+- Python 3.8+
+- Django 5.x
+- PostgreSQL with pgvector extension
+- Huggingface API
+- Redis server
 
-- `chat/consumers.py`: WebSocket consumer for handling real-time communication
-- `chat/models.py`: Database models for Conversation and Message
-- `chat/views.py`: Django views for rendering pages and handling requests
-- `chat/urls.py`: URL routing for the chat application
-- `config/routing.py`: WebSocket routing configuration
-- `chat/configure_llm.py`: Configuration for language model integration
-- `chat/templates/chat/chat.html`: Main template for the chat interface
-- `chat/api.py`: ViewSets for RESTful API
-- `chat/serializers.py`: Serializers for API data representation
-
-## Installation
+### Installation
 
 1. Clone the repository:
    ```
@@ -86,36 +87,77 @@ The main components of the chat application include:
 
 4. Set up your environment variables:
    - Create a `.env` file in the project root
-   - Add necessary variables (e.g., `DJANGO_SECRET_KEY`, `DEBUG`, `HUGGINGFACEHUB_API_TOKEN`)
+   - Add necessary variables (e.g., `DJANGO_SECRET_KEY`, `DEBUG`, `HUGGINGFACEHUB_API_TOKEN`, `DATABASE_URL`, `REDIS_URL`)
 
-5. Run migrations:
+5. Set up PostgreSQL with pgvector extension:
+   - Ensure PostgreSQL is installed and running
+   - Create a database for the project
+   - Install the pgvector extension in your database
+
+6. Set up Redis:
+   - Ensure Redis is installed and running
+
+7. Run migrations:
    ```
    python manage.py migrate
    ```
 
-6. Start the development server:
+8. Start the development server:
    ```
    python manage.py runserver
    ```
 
-## Configuration
+9. Visit `http://localhost:8000` in your web browser.
 
-The project uses a `base.py` file for Django settings. Key configurations include:
+## Project Structure
 
-- `INSTALLED_APPS`: Includes 'daphne', 'channels', 'rest_framework', 'corsheaders', and 'drf_spectacular' among others.
-- `ASGI_APPLICATION`: Set to 'config.asgi.application' for WebSocket support.
-- `CHANNEL_LAYERS`: Configured to use Redis as the backend.
-- `REST_FRAMEWORK`: Configured with default permission classes and authentication classes.
-- `SPECTACULAR_SETTINGS`: Configuration for API documentation using drf-spectacular.
-- `HUGGINGFACE_API_TOKEN`: Token for accessing Hugging Face models.
+```
+Django-Chat/
+├── chat/                  # Core chat functionality
+├── audio_interface/       # Audio processing module
+├── image_interface/       # Image processing module
+├── document_interface/    # Document processing module
+├── users/                 # User authentication and profiles
+├── static/                # Static files (CSS, JS)
+├── templates/             # HTML templates
+├── manage.py
+└── requirements.txt
+```
 
-## Usage
+## Key Components
 
-1. Register a new account or log in to an existing one.
-2. Start a new conversation or select an existing one from the dashboard.
-3. Type your message in the input field and press enter to send.
-4. The AI assistant will respond in real-time.
-5. You can view your conversation history and manage your chats from the dashboard.
+1. **Chat App**: Handles core text-based chat functionality.
+2. **Audio Interface**: Manages voice input/output and transcription.
+3. **Image Interface**: Processes uploaded images and generates descriptions.
+4. **Document Interface**: Handles PDF uploads and question-answering about documents.
+5. **User Management**: Manages user authentication and profiles.
+
+
+## How It Works
+
+1. **Text Chat**:
+   - Users send messages through a WebSocket connection.
+   - Messages are processed by an AI model via Langchain.
+   - Responses are sent back to the user in real-time.
+
+2. **Audio Chat**:
+   - Users can record audio messages.
+   - Audio is converted to text using speech recognition.
+   - The text is processed by the AI model.
+   - The AI's response is converted back to speech.
+
+3. **Image Analysis**:
+   - Users upload images.
+   - Images are processed using computer vision techniques.
+   - An AI model generates descriptions of the images.
+   - Users can ask questions about the uploaded images.
+
+4. **Document Q&A**:
+   - Users upload PDF documents.
+   - Documents are processed and indexed.
+   - Users can ask questions about the document content.
+   - An AI model provides answers based on the document's content.
+
 
 ## API Endpoints
 
@@ -140,6 +182,18 @@ The application uses WebSockets for real-time communication. The WebSocket consu
 - Sending responses back to the client
 
 WebSocket routing is configured in `config/routing.py`.
+
+## Configuration
+
+The project uses a `base.py` file for Django settings. Key configurations include:
+
+- `INSTALLED_APPS`: Includes 'daphne', 'channels', 'rest_framework', 'corsheaders', and 'drf_spectacular' among others.
+- `ASGI_APPLICATION`: Set to 'config.asgi.application' for WebSocket support.
+- `CHANNEL_LAYERS`: Configured to use Redis as the backend.
+- `REST_FRAMEWORK`: Configured with default permission classes and authentication classes.
+- `SPECTACULAR_SETTINGS`: Configuration for API documentation using drf-spectacular.
+- `HUGGINGFACE_API_TOKEN`: Token for accessing Hugging Face models.
+
 
 ## Contributing
 

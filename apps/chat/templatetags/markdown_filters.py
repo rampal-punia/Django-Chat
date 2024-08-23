@@ -10,8 +10,8 @@ register = template.Library()
 @register.filter(name='markdown_to_html')
 def markdown_to_html(value):
     # Remove the </s> token
-    value = value.replace('</s>', '')
     value = value.replace('AI:', '')
+    value = value.replace('</s>', '')
 
     # Normalize line endings and remove excessive blank lines
     value = re.sub(r'\r\n|\r', '\n', value)

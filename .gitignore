@@ -131,6 +131,7 @@ dmypy.json
 
 local_folder/
 weights/
+file_name_converter.ipynb
 
 # Ignore everything in the media folder
 media/*

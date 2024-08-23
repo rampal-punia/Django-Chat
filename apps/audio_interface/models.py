@@ -1,5 +1,3 @@
-# apps/audio_interface/models.py
-
 from django.db import models
 
 

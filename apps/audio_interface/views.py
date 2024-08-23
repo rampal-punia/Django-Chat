@@ -1,5 +1,3 @@
-# apps/audio_interface/views.py
-
 import uuid
 
 from django.shortcuts import render, redirect
