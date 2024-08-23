@@ -21,11 +21,6 @@ def save_conversation_title(conversation, title):
     conversation.save()
 
 
-async def get_conversation_content(conversation_id, message_limit=2):
-    messages = await database_sync_to_async(lambda: list(Message.objects.filter(conversation_id=conversation_id).order_by('-created')[:message_limit]))()
-    return " ".join([msg.chat_content.content for msg in reversed(messages)])
-
-
 @database_sync_to_async
 def get_conversation_history(conversation_id, limit=8):
     conversation = Conversation.objects.get(id=conversation_id)
@@ -74,30 +69,53 @@ async def generate_title(conversation_content):
 class TextChatHandler:
     @staticmethod
     async def process_text_response(
-        conversation,
-        user_message,
-        input_data,
-        send_method
+        conversation,   # User-Ai conversation db table instance
+        user_message,   # user_message db table instance
+        input_data,     # Front end user message
+        send_method,     # self.send method of consumer
+        # In case of RAG query related cosine similary bases retrived context from vectordb
+        context=None,
+        summary=None
     ):
         try:
-            history = await get_conversation_history(conversation.id)
-            history_str = '\n'.join(
-                [f"{'Human' if isinstance(msg, HumanMessage) else 'AI'}:{msg.content}" for msg in history]
-            )
-            input_with_history = {
-                'history': history_str,
-                'input': input_data
-            }
+            if context:
+                input_with_history_and_context = {
+                    'history': summary,
+                    'input': input_data,
+                    'context': context
+                }
+                print("Input with history and context is: ",
+                      input_with_history_and_context)
 
-            # Generate AI response
-            llm_response_chunks = []
-            async for chunk in configure_llm.chain.astream_events(input_with_history, version='v2', include_names=['Assistant']):
-                if chunk['event'] in ['on_parser_start', 'on_parser_stream']:
-                    await send_method(text_data=json.dumps(chunk))
+                # Generate AI response
+                llm_response_chunks = []
+                async for chunk in configure_llm.doc_chain.astream_events(input_with_history_and_context, version='v2', include_names=['Assistant']):
+                    if chunk['event'] in ['on_parser_start', 'on_parser_stream']:
+                        await send_method(text_data=json.dumps(chunk))
 
-                if chunk.get('event') == 'on_parser_end':
-                    output = chunk.get('data', {}).get('output', '')
-                    llm_response_chunks.append(output)
+                    if chunk.get('event') == 'on_parser_end':
+                        output = chunk.get('data', {}).get('output', '')
+                        llm_response_chunks.append(output)
+            else:
+                history = await get_conversation_history(conversation.id)
+                history_str = '\n'.join(
+                    [f"{'Human' if isinstance(msg, HumanMessage) else 'AI'}:{msg.content}" for msg in history]
+                )
+                input_with_history = {
+                    'history': history_str,
+                    'input': input_data
+                }
+                print("Input with history is: ",
+                      input_with_history)
+                # Generate AI response
+                llm_response_chunks = []
+                async for chunk in configure_llm.chain.astream_events(input_with_history, version='v2', include_names=['Assistant']):
+                    if chunk['event'] in ['on_parser_start', 'on_parser_stream']:
+                        await send_method(text_data=json.dumps(chunk))
+
+                    if chunk.get('event') == 'on_parser_end':
+                        output = chunk.get('data', {}).get('output', '')
+                        llm_response_chunks.append(output)
 
             ai_response = ''.join(llm_response_chunks)
 

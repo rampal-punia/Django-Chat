@@ -1,5 +1,3 @@
-# apps/chat/configure_llm.py
-
 from langchain_core.prompts import ChatPromptTemplate, ChatMessagePromptTemplate
 from langchain_huggingface.llms import HuggingFaceEndpoint
 from langchain_core.output_parsers import StrOutputParser
@@ -43,9 +41,16 @@ def create_chain(prompt, llm, run_name):
     return prompt | llm.with_config({'run_name': 'model'}) | output_parser.with_config({'run_name': run_name})
 
 
-prompt = ChatPromptTemplate.from_messages([
+chat_prompt = ChatPromptTemplate.from_messages([
     ("system", "You are a helpful assistant."),
     ('human', "Conversation history:\n{history}\n\nNew User message: {input}"),
+    ("human", "Now, respond to the new message.")
+])
+
+doc_prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are an AI assistant helping to answer questions based on a given document. Use the following context to answer the user's question. If you cannot answer the question based on the context, say that you don't have enough information to answer accurately."),
+    ('human', "Conversation history:\n{history}\n\nNew User message: {input}"),
+    ('human', "Related Context:\n{context}"),
     ("human", "Now, respond to the new message.")
 ])
 
@@ -58,7 +63,9 @@ llm = configure_llm(
     max_new_tokens=1000
 )
 
-chain = create_chain(prompt, llm, "Assistant")
+chain = create_chain(chat_prompt, llm, "Assistant")
+
+doc_chain = create_chain(doc_prompt, llm, "Assistant")
 
 
 # llm = configure_llm(

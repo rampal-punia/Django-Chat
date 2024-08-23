@@ -1,38 +1,15 @@
 import json
+import asyncio
 from asgiref.sync import sync_to_async
-import aiohttp
-
-from langchain_core.messages import HumanMessage, AIMessage
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 
-from chat.models import Conversation, Message
-from common import configure_llm
+from chat.models import Conversation, Message, ChatMessage
 from .models import DocumentMessage
 from .services import DocumentModalHandler
-
-
-API_URL = "https://api-inference.huggingface.co/models/czearing/article-title-generator"
-headers = {"Authorization": f"Bearer {settings.HUGGINGFACE_API_TOKEN}"}
-
-
-async def generate_title(conversation_content):
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-                API_URL,
-                headers=headers,
-                json={
-                    "inputs": conversation_content,
-                    "parameters": {"max_length": 50, "min_length": 10}
-                }) as response:
-            result = await response.json()
-            if isinstance(result, list) and len(result) > 0:
-                return result[0]['generated_text']
-            else:
-                return "Untitled Conversation"
+from common.text_chat_handler import TextChatHandler
 
 
 class DocumentChatConsumer(AsyncWebsocketConsumer):
@@ -67,15 +44,29 @@ class DocumentChatConsumer(AsyncWebsocketConsumer):
             await self.handle_text_message(conversation, message_content)
 
     async def handle_document_message(self, conversation, document_data):
-        try:
-            document_handler = DocumentModalHandler()
+        # try:
+        document_handler = DocumentModalHandler()
 
-            # Process document
-            num_chunks, summary, chunks, embeddings, metadata = await document_handler.process_document(document_data)
+        # Process document
+        num_chunks, summary, chunks, embeddings, metadata, document_hash = await document_handler.process_document(document_data)
 
+        # Check if this is an existing document
+        self.document_message = await document_handler.get_existing_document(document_hash)
+
+        if self.document_message:
+            # If the document already exists, we don't need to save it again
+            await self.send(text_data=json.dumps({
+                'type': 'document_summary',
+                'message': self.document_message.summary,
+            }))
+
+            # Update conversation title
+            # new_title = await self.get_title_from_metadata(existing_document.metadata)
+            # await self.update_conversation_title(conversation, new_title)
+        else:
             # Save user's document message
             user_message = await self.save_message(conversation, 'DO', is_from_user=True)
-            await document_handler.save_document_message(user_message, document_data, num_chunks, summary, chunks, embeddings, metadata)
+            self.document_message = await document_handler.save_document_message(user_message, document_data, num_chunks, summary, chunks, embeddings, metadata, document_hash)
 
             # Send document summary to the client
             await self.send(text_data=json.dumps({
@@ -84,66 +75,47 @@ class DocumentChatConsumer(AsyncWebsocketConsumer):
             }))
 
             # Update conversation title
-            new_title = f"Document Chat: {metadata.get('title', 'Untitled')[:30]}"
+            new_title = await self.get_title_from_metadata(metadata)
             await self.update_conversation_title(conversation, new_title)
 
-        except Exception as e:
-            await self.send(text_data=json.dumps({
-                'type': 'error',
-                'message': f"Error processing document: {str(e)}",
-            }))
+        # except Exception as e:
+        #     await self.send(text_data=json.dumps({
+        #         'type': 'error',
+        #         'message': f"Error processing document: {str(e)}",
+        #     }))
 
     async def handle_text_message(self, conversation, message_content):
-        try:
-            document_handler = DocumentModalHandler()
 
-            # Get the latest document message for this conversation
-            document_message = await self.get_latest_document_message(conversation)
+        # Save user's text message
+        user_message = await self.save_message(conversation, 'TE', is_from_user=True)
+        await self.save_chat_message(user_message, message_content)
 
-            # Query the document
-            context = await document_handler.query_document(message_content, document_message.id)
+        # try:
+        document_handler = DocumentModalHandler()
 
-            # Generate AI response
-            ai_response = await self.generate_ai_response(context, message_content)
+        # Query the document
+        context = await document_handler.query_document(message_content, self.document_message.id)
 
-            # Save user's text message
-            user_message = await self.save_message(conversation, 'TE', is_from_user=True)
-            await self.save_chat_message(user_message, message_content)
+        # Generate AI response
+        await TextChatHandler.process_text_response(
+            conversation,
+            user_message,
+            message_content,
+            self.send,
+            context,
+            self.document_message.summary
+        )
 
-            # Save AI's text message
-            ai_message = await self.save_message(conversation, 'TE', is_from_user=False)
-            await self.save_chat_message(ai_message, ai_response)
-
-            # Send AI response to the client
-            await self.send(text_data=json.dumps({
-                'type': 'ai_response',
-                'message': ai_response,
-            }))
-
-        except ObjectDoesNotExist:
-            await self.send(text_data=json.dumps({
-                'type': 'error',
-                'message': "No document has been uploaded for this conversation. Please upload a document first.",
-            }))
-        except Exception as e:
-            await self.send(text_data=json.dumps({
-                'type': 'error',
-                'message': f"Error processing your question: {str(e)}",
-            }))
-
-    async def generate_ai_response(self, context, query):
-        prompt = f"""You are an AI assistant helping to answer questions based on a given document. 
-        Use the following context to answer the user's question. If you cannot answer the question based on the context, 
-        say that you don't have enough information to answer accurately.
-
-        Context: {context}
-
-        User Question: {query}
-
-        Answer:"""
-
-        response = await configure_llm.chain.ainvoke({"input": prompt})
-        return response
+        # except ObjectDoesNotExist:
+        #     await self.send(text_data=json.dumps({
+        #         'type': 'error',
+        #         'message': "No document has been uploaded for this conversation. Please upload a document first.",
+        #     }))
+        # except Exception as e:
+        #     await self.send(text_data=json.dumps({
+        #         'type': 'error',
+        #         'message': f"Error processing your question: {str(e)}",
+        #     }))
 
     @database_sync_to_async
     def get_or_create_conversation(self, conversation_id):
@@ -169,11 +141,26 @@ class DocumentChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def save_chat_message(self, message, content):
-        return message.chat_content.create(content=content)
+        return ChatMessage.objects.create(
+            message=message,
+            content=content
+        )
 
     @database_sync_to_async
     def get_latest_document_message(self, conversation):
         return DocumentMessage.objects.filter(message__conversation=conversation).latest('message__created')
+
+    @database_sync_to_async
+    def update_conversation_title(self, conversation, new_title):
+        conversation.title = new_title
+        conversation.save()
+        return conversation
+
+    @sync_to_async
+    def get_title_from_metadata(self, metadata):
+        title = metadata.get('title', 'Untitled') if isinstance(
+            metadata, dict) else getattr(metadata, 'title', 'Untitled')
+        return f"Document Chat: {title[:30]}"
 
     @database_sync_to_async
     def update_conversation_title(self, conversation, new_title):

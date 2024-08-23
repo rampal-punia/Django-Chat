@@ -50,6 +50,8 @@ class DocumentMessage(models.Model):
     processed_content = models.TextField(blank=True)
     # Store the generated summary
     summary = models.TextField(blank=True)
+    # Field for storing the hash (Check same file uploaded again)
+    document_hash = models.CharField(max_length=64, unique=True)
 
     def __str__(self):
         return f"Document: {self.id}"
