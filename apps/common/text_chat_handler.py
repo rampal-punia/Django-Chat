@@ -84,8 +84,6 @@ class TextChatHandler:
                     'input': input_data,
                     'context': context
                 }
-                print("Input with history and context is: ",
-                      input_with_history_and_context)
 
                 # Generate AI response
                 llm_response_chunks = []
@@ -105,8 +103,6 @@ class TextChatHandler:
                     'history': history_str,
                     'input': input_data
                 }
-                print("Input with history is: ",
-                      input_with_history)
                 # Generate AI response
                 llm_response_chunks = []
                 async for chunk in configure_llm.chain.astream_events(input_with_history, version='v2', include_names=['Assistant']):

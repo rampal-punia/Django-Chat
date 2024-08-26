@@ -1,36 +1,25 @@
-from langchain_core.prompts import ChatPromptTemplate, ChatMessagePromptTemplate
+from decouple import config
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface.llms import HuggingFaceEndpoint
+# from langchain_core.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_core.output_parsers import StrOutputParser
-
-# from langchain_openai import ChatOpenAI
-# from langchain_anthropic import ChatAnthropic
+HUGGINGFACE_API_TOKEN = config('HUGGINGFACEHUB_API_TOKEN')
 
 
 def configure_llm(model_name, **kwargs):
     '''Create LLM with configurations'''
     huggingface_models = {
-        "mistral-7b": "mistralai/Mistral-7B-Instruct-v0.3",
-        "mistral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-        "llama2-7b": "meta-llama/Llama-2-7b-chat-hf",
-        "llama2-7b-chat": "meta-llama/Llama-2-70b-chat",
-        "llama3-8b": "meta-llama/Meta-Llama-3-8B",
-        "llama2-13b": "meta-llama/Llama-2-13b-chat-hf",
-        "llama2-70b": "meta-llama/Llama-2-70b-chat-hf",
-        "finbert-tone": "nickmuchi/finbert-tone-finetuned-finance-topic-classification",
+        "Mistral-7B": "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3",
+        "Mixtral-8x7B": "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1",
+        "Mistral-Nemo": "https://api-inference.huggingface.co/models/mistralai/Mistral-Nemo-Instruct-2407",
     }
 
     if model_name in huggingface_models:
         return HuggingFaceEndpoint(
-            repo_id=huggingface_models[model_name],
+            endpoint_url=huggingface_models[model_name],
             task='text-generation',
             **kwargs
         )
-    # elif model_name == "gpt-3.5-turbo":
-    #     return ChatOpenAI(model_name="gpt-3.5-turbo", **kwargs)
-    # elif model_name == "gpt-4":
-    #     return ChatOpenAI(model_name="gpt-4", **kwargs)
-    # elif model_name == "claude-2":
-    #     return ChatAnthropic(model_name="claude-2", **kwargs)
     else:
         raise ValueError(f"Unsupported model: {model_name}")
 
@@ -55,23 +44,20 @@ doc_prompt = ChatPromptTemplate.from_messages([
 ])
 
 # Example usage
+# callbacks = [StreamingStdOutCallbackHandler()]
 llm = configure_llm(
-    "mistral-8x7b",
-    # "llama2-7b-chat",
-    temperature=0.5,
-    top_k=25,
-    max_new_tokens=1000
+    "Mixtral-8x7B",
+    max_new_tokens=512,
+    top_k=20,
+    top_p=0.85,
+    typical_p=0.95,
+    temperature=0.01,
+    repetition_penalty=1.03,
+    # callbacks=callbacks,
+    streaming=True,
+    huggingfacehub_api_token=HUGGINGFACE_API_TOKEN
 )
 
 chain = create_chain(chat_prompt, llm, "Assistant")
 
 doc_chain = create_chain(doc_prompt, llm, "Assistant")
-
-
-# llm = configure_llm(
-#     repo_id="mistralai/Mistral-7B-Instruct-v0.3",
-#     max_new_tokens=400,
-#     top_k=25,
-#     temperature=0.2,
-#     repetition_penalty=1.5
-# )
