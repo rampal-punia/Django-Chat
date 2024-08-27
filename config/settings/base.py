@@ -8,9 +8,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # Add the 'apps' directory to the Python path
 sys.path.insert(0, str(BASE_DIR / 'apps'))
 
-# # Build paths inside the project like this: BASE_DIR / 'subdir'.
-# BASE_DIR = Path(__file__).resolve().parent.parent.parent
-
 # # make sure our apps directory is on the python path
 # sys.path.append(str(BASE_DIR / "apps"))
 
@@ -26,8 +23,6 @@ ALLOWED_HOSTS = [
     "0.0.0.0",
 ]
 
-
-# Application definition
 
 INSTALLED_APPS = [
     'daphne',
@@ -91,9 +86,6 @@ ASGI_APPLICATION = 'config.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/{{ docs_version }}/ref/settings/#databases
-
-
-# postgres://user:p%23ssword!@localhost/foobar
 
 
 # Password validation
