@@ -8,9 +8,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # Add the 'apps' directory to the Python path
 sys.path.insert(0, str(BASE_DIR / 'apps'))
 
-# # make sure our apps directory is on the python path
-# sys.path.append(str(BASE_DIR / "apps"))
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/{{ docs_version }}/howto/deployment/checklist/
 
@@ -157,8 +154,6 @@ CHANNEL_LAYERS = {
     },
 }
 
-# For development only. Configure more strictly for production.
-CORS_ALLOW_ALL_ORIGINS = True
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
