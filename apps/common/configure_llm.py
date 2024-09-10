@@ -1,9 +1,8 @@
-from decouple import config
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface.llms import HuggingFaceEndpoint
+from django.conf import settings
 # from langchain_core.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_core.output_parsers import StrOutputParser
-HUGGINGFACE_API_TOKEN = config('HUGGINGFACEHUB_API_TOKEN')
 
 
 def configure_llm(model_name, **kwargs):
@@ -55,7 +54,7 @@ llm = configure_llm(
     repetition_penalty=1.03,
     # callbacks=callbacks,
     streaming=True,
-    huggingfacehub_api_token=HUGGINGFACE_API_TOKEN
+    huggingfacehub_api_token=settings.HUGGINGFACE_API_TOKEN
 )
 
 chain = create_chain(chat_prompt, llm, "Assistant")
